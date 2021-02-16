@@ -15,5 +15,9 @@
     "key_type": "ssh",
     "public_key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDx8nkQv/zgGgB4rMYmIf+6A4l6Rr+o/6lHBQdW5aYd44bd8JttDCE/F/pNRr0lRE+PiqSPO8nDPHw0010JeMH9gYgnnFlyY3/OcJ02RhIPyyxYpv9FhY+2YiUkpwFOcLImyrxEsYXpD/0d3ac30bNH6Sw9JD9UZHYcpSxsIbECHw== Generated-by-Nova",
     "key_user_id": "fake",
+    "vol_name1": "vdb",
+    "vol_size1": "10",
+    "vol_name2": "vdc",
+    "vol_size2": "10",
     "keystone": "http://192.168.24.132:5000/v3/"
 }

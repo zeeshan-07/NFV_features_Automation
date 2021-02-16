@@ -25,7 +25,9 @@ def create_network(network_id,mtu_size,subnet_name,cidr,token):
     flag=0
     for sd in (data["networks"]):
         if network_id in (sd["name"]):
-            print("        Network",(sd["name"]) +" already exists")
+            net_id=sd["id"]
+            #print(net_id)
+            print("        Network"+ (sd["name"]) +" already exists")
             flag= flag + 1
         
     if flag == 0:
@@ -34,35 +36,45 @@ def create_network(network_id,mtu_size,subnet_name,cidr,token):
                             headers={'content-type': 'application/json',
                                 'X-Auth-Token': token},
                             data=json.dumps(payload))
-        print("            " (network_id) +" Successfully created")
+        print((network_id) +" Successfully created")
         if res.ok:
             print("Successfully Created Network "+network_name)
         else :
             res.raise_for_status()
     
     ### Creating subnet ####
-    print("Network Id: ")
-    print(network_id)
     payload= {
         "subnet": {
             "name": subnet_name,
-            "network_id": "8a220741-cfc4-4718-888c-461ae5461e3d", 
+            "network_id": net_id, 
             "ip_version": 4, 
             "cidr": cidr 
             }
         }
-
-    res = requests.post('http://100.82.39.60:9696/v2.0/subnets',
+    
+    #List Subnets
+    res = requests.get('http://100.82.39.60:9696/v2.0/subnets',
                         headers={'content-type': 'application/json',
-                             'X-Auth-Token':  token},
-                        data=json.dumps(payload))
-
-    if res.ok:
-        print("Successfully Created Subnet "+subnet_name)
-    else :
-        res.raise_for_status()
+                            'X-Auth-Token': token})
 
     data= res.json()
+    flag=0
+    for sd in (data["subnets"]):
+        if subnet_name in (sd["name"]):
+            print("        Subnet"+ (sd["name"]) +" already exists")
+            flag= flag + 1
+        
+    if flag == 0:
+         #creating Subnet through api
+        res = requests.post('http://100.82.39.60:9696/v2.0/subnets',
+                            headers={'content-type': 'application/json',
+                                'X-Auth-Token': token},
+                            data=json.dumps(payload))
+        print("            " (subnet_name) +" Successfully created")
+        if res.ok:
+            print("Successfully Created Subnet  "+ (subnet_name))
+        else :
+            res.raise_for_status()
 
 
 
@@ -88,6 +100,7 @@ def flavor_verify(flavor,token):
                             'X-Auth-Token': token})
 
     # List Images
+    print(res.text)
     data= res.json()
     flag=0
     for sd in (data["flavors"]):
@@ -99,12 +112,12 @@ def flavor_verify(flavor,token):
 def create_keypair(key_name,fingerprint,key_type,public_key,user_id,token):
     payload= {
         "keypair": {
-        "fingerprint": fingerprint,
-        "name": key_name,
-        "type": key_type,
-        "public_key": public_key,
-        "user_id": user_id
-    }
+            "fingerprint": fingerprint,
+            "name": key_name,
+        #    "type": key_type,
+        #    "public_key": public_key,
+        #    "user_id": user_id
+            }
         }    
 
     res = requests.post('http://100.82.39.60:8774/v2.0/os-keypairs',
@@ -118,77 +131,112 @@ def create_keypair(key_name,fingerprint,key_type,public_key,user_id,token):
     else :
         res.raise_for_status()
 
-################# Main function ##############
-def main():
-    # reading & then conversion of json file into python dictionary
-    json_file = "var_info.json"
-
-    if os.path.exists(json_file):
-        try:
-            with open(json_file) as data_file:
-                data_info = json.load(data_file)
-
-        except:
-            print("Failed to load Json_File")
-    else:
-        print("\nFile not found!!! Exception Occurred \n")
-
-
-
-    username= (data_info['username'])
-    password= (data_info["password"])
-
-
-    #Authenticate User
+    ####  Volume creation
+def create_volume(vol_name,Vol_size,project_id,token):
     payload= {
-        "auth": {
-            "identity": {
-                "methods": [
-                    "password"
-                ],
-                "password": {
-                    "user": {
-                        "name": username,
-                        "domain": {
-                            "name": "Default"
-                        },
-                        "password": password}
-                }
-            },
-            "scope": {
-                "project": {
-                    "domain": {
-                        "id": "default"
-
-                    },
-                    "name": "admin"
-                }
+        "volume": {
+            "name": vol_name,
+            "size": Vol_size
             }
         }
-    }
-
-    #Send Authentication Requesrt
-    res = requests.post('http://100.82.39.60:5000/v3/auth/tokens',
-                        headers = {'content-type':'application/json'},
-                        data=json.dumps(payload))
-
-    #Check Response
-    if res.status_code == 200:
-    #    print ('Successfully Authenticated with Keystone')
-        token= res.headers.get('X-Subject-Token')
-    else:
-        res.raise_for_status()
+    url= "http://100.82.39.60:8776/v3/"+ project_id +"/volumes"
+    res = requests.get(url,
+                        headers={'content-type': 'application/json',
+                            'X-Auth-Token': token})
     #print(res.text)
-    token= res.headers.get('X-Subject-Token')
-    res= json.loads(res.text)
-    #print(json.dumps(res, indent=1))
- 
-#    create_keypair(data_info["key_name"],data_info["fingerprint"],data_info["key_type"],data_info["public_key"],data_info["key_user_id"],token)
-#    flavor_verify(data_info["flavor"],token)    
-#    image_verify(data_info["image"],token)
-    network_1_id= create_network(data_info["network_1"],data_info["mtu"],data_info["subnet_name"],data_info["cidr"],token)
 
-main()
+    data= res.json()
+    flag=0
+    for sd in (data["volumes"]):
+        if vol_name in (sd["name"]):
+            print("        volume",(sd["name"]) +" already exists")
+            flag=flag+1
+        
+    if flag == 0:
+        res = requests.post(url,
+                                headers={'content-type': 'application/json',
+                                    'X-Auth-Token': token},
+                                data=json.dumps(payload))
+        
+    print((vol_name) +" Successfully created")
+    if res.ok:
+        print("Successfully Created Network "+vol_name)
+    else :
+        res.raise_for_status()  
 
 
+def attach_volume(instance_name,vol_name,project_id,token):
+    mountpoint= "/dev/vdb"
 
+    res = requests.get('http://100.82.39.60:8774/v2.1/servers',
+                        headers={'content-type': 'application/json',
+                            'X-Auth-Token': token})
+    #print(res.text)
+    data=res.json()
+    for sd in (data["servers"]):
+        if instance_name in (sd["name"]):
+            inst_id =sd["id"]
+
+
+    url= "http://100.82.39.60:8776/v3/"+ project_id +"/volumes"
+    res = requests.get(url,
+                        headers={'content-type': 'application/json',
+                            'X-Auth-Token': token})
+    
+
+
+    data= res.json()
+    for sd in (data["volumes"]):
+        if vol_name in (sd["name"]):
+            vol_id=sd["id"]
+
+            payload= {"volumeAttachment": {"volumeId": vol_id}}
+        #    POST http://100.82.39.60:8774/v2.1/servers/b6562df0-859e-4e31-8ce3-2f743a46c8d9/os-volume_attachments
+            url= "http://100.82.39.60:8774/v2.1/servers/"+ inst_id +"/os-volume_attachments"
+
+            res = requests.post(url,
+                            headers={'content-type': 'application/json',
+                                    'X-Auth-Token': token},
+                                     data=json.dumps(payload))
+            if res.ok:
+                print("Successfully attach "+ (vol_name) +"Volume with instance"+ (instance_name))
+
+            else :
+                res.raise_for_status()    
+
+
+def find_admin_project_id(token):
+    res = requests.get('http://100.82.39.60:5000/v3/projects',
+                headers={'content-type': 'application/json',
+                    'X-Auth-Token': token})
+    #print(res.text)
+    data= res.json()
+    flag=0
+    for sd in (data["projects"]):
+        if "admin" in (sd["name"]):
+            return (sd["id"])
+
+def delete_volume(vol_name,project_id,token):
+    payload= {
+        "volume": {
+            "name": vol_name
+            }
+        }
+    url= "http://100.82.39.60:8776/v3/"+ project_id +"/volumes"
+    res = requests.get(url,
+                        headers={'content-type': 'application/json',
+                            'X-Auth-Token': token})
+
+    data= res.json()
+    flag=0
+    for sd in (data["volumes"]):
+        if vol_name in (sd["name"]):
+            vol_id=sd["id"]
+            url= "http://100.82.39.60:8776/v3/"+ project_id +"/volumes/"+ vol_id
+            res = requests.delete(url,
+                            headers={'content-type': 'application/json',
+                                    'X-Auth-Token': token})
+            if res.ok:
+                print("Successfully Delete Volume "+vol_name)
+            else:
+                res.raise_for_status()

@@ -113,8 +113,6 @@ def ssh_conne2(server1, server2, settings):
         client.close()
         logging.info("Connection from client has been closed")  
 
-
-
 def parse_hugepage_size(huge_page_info, parameter):
     huge_page_info= huge_page_info.split('\n')
     for property in huge_page_info:
@@ -173,7 +171,6 @@ def get_last_created_presenter_port(node):
     presenter_ports= presenter_ports.split(":")
     print("presenter port is: {}".format(presenter_ports[0]))
     return presenter_ports
-
 def get_sriov_enabled_interfaces():
     command= "cat ~/pilot/templates/neutron-sriov.yaml |grep physint:"
     result= os.popen(command).read()

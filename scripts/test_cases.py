@@ -15,6 +15,9 @@ from dvr import *
 import numpy as np
 from octavia import *
 from sriov_vflag import *
+from storage import *
+from hci import *
+from barbican import *
 
 #filename=time.strftime("%d-%m-%Y-%H-%M-%S")+".log"
 #filsename= "logs.log", filemode="w", stream=sys.stdout
@@ -425,7 +428,7 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
 
     passed=failed=0
-    '''
+    
     t7,message7, t8,message8= sriov_test_cases_7_8(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t7 == True:
         t7= "Passed"
@@ -463,21 +466,21 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     else:
         failed=failed+1
         t12="Failed"
-    '''
-    t13,message13, t14, message14= sriov_test_cases_13_14(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    if t13 == True:
-        t13= "Passed"
-        passed=passed+1
-    else:
-        failed=failed+1
-        t13="Failed"
-    if t14 == True:
-        t14= "Passed"
-        passed=passed+1
-    else:
-        failed=failed+1
-        t14="Failed" 
-    '''
+    
+    #t13,message13, t14, message14= sriov_test_cases_13_14(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    #if t13 == True:
+    #    t13= "Passed"
+    #    passed=passed+1
+    #else:
+    #    failed=failed+1
+    #    t13="Failed"
+    #if t14 == True:
+    #    t14= "Passed"
+    #    passed=passed+1
+    #else:
+    #    failed=failed+1
+    #    t14="Failed" 
+    
     t15,message15= sriov_test_cases_15(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id)
     if t15 == True:
         t15= "Passed"
@@ -562,12 +565,12 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     print("SRIOV test case 12 status: {} ".format(t12))
     print("SRIOV message  {} \n".format(message12))
     print("------------------------------")
-    '''
-    print("SRIOV test case 13 status: {} ".format(t13))
-    print("SRIOV message  {} \n".format(message13))
+    
+    #print("SRIOV test case 13 status: {} ".format(t13))
+    #print("SRIOV message  {} \n".format(message13))
     print("------------------------------")
-    print("SRIOV test case 14 status: {} ".format(t14))
-    print("SRIOV message  {} \n".format(message14))
+    #print("SRIOV test case 14 status: {} ".format(t14))
+    #print("SRIOV message  {} \n".format(message14))
     
     print("------------------------------")
     print("SRIOV test case 15 status: {} ".format(t15))
@@ -951,6 +954,25 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
     image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
     
     passed=failed=0
+    t7, message7= dvr_test_case_7(baremetal_nodes_ips)
+    if t7 == True:
+        t7= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t7="Failed"
+    print(t7)
+    print(message7)
+
+    t8, message8= dvr_test_case_8(baremetal_nodes_ips)
+    if t8 == True:
+        t8= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t8="Failed"
+    print(t8)
+    print(message8)
     '''
     t10, message10= dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, router_id, security_group_id, image_id)
     if t10 == True:
@@ -961,7 +983,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t10="Failed"
     print(t10)
     print(message10)
-    '''
+    
     t11, message11= dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id)
     if t11 == True:
         t11= "Passed"
@@ -971,7 +993,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t11="Failed"
     print(t11)
     print(message11)
-    '''
+    
     t12, message12= dvr_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id)
     if t12 == True:
         t12= "Passed"
@@ -1047,6 +1069,26 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t17="Failed"
     print(t17)
     print(message17)
+    
+    t31, message31= dvr_test_case_31(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    if t31 == True:
+        t31= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t31="Failed"
+    print(t31)
+    print(message31)
+    
+    t32, message32= dvr_test_case_32(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    if t32 == True:
+        t32= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t32="Failed"
+    print(t32)
+    print(message32)
     '''
 
 def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, token, settings, baremetal_nodes_ips):
@@ -1358,6 +1400,156 @@ def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, token, settings, barem
         failed=failed+1
         t8="Failed"    
     '''
+def storage_test_cases(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips):
+    #creating zones
+        
+    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+
+    #Search and create network
+    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
+    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
+    #Search and create subnet
+    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
+    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
+    router_id= search_router(neutron_ep, token, settings["router_name"])
+    if router_id is None:
+        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
+        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
+        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
+        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
+        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
+    #Search and create security group
+    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
+    try:
+        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
+        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
+    except:
+        pass
+    #search and create image
+    image_id= search_and_create_image( image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
+
+    passed=failed=0
+   
+    storage_cases_1(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    #print(t7)
+    #print(message7)
+def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips):
+     #creating zones
+    '''
+    try:
+        compute0 =  [key for key, val in baremetal_nodes_ips.items() if "hci-0" in key]
+        compute0= compute0[0]
+        compute1 =  [key for key, val in baremetal_nodes_ips.items() if "hci-1" in key]
+        compute1= compute1[0]
+        compute2 =  [key for key, val in baremetal_nodes_ips.items() if "hci-2" in key]
+        compute2= compute2[0]
+        default_zone_id= get_availability_zones(nova_ep, token)
+        remove_host_from_zone(nova_ep, token, default_zone_id, compute0)
+        remove_host_from_zone(nova_ep, token, default_zone_id, compute1)
+        remove_host_from_zone(nova_ep, token, default_zone_id, compute2)
+        nova0_id= create_availability_zones(nova_ep, token, "nova0")
+        nova1_id= create_availability_zones(nova_ep, token, "nova1")
+        #nova2_id= create_availability_zones(nova_ep, token, "nova2")
+        add_host_to_zone(nova_ep, token, nova0_id, compute0)
+        add_host_to_zone(nova_ep, token, nova1_id, compute1)
+        add_host_to_zone(nova_ep, token, nova1_id, compute2)
+        time.sleep(20)
+    except Exception as e:
+        pass
+    '''
+    
+    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+
+    #Search and create network
+    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
+    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
+    #Search and create subnet
+    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
+    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
+    router_id= search_router(neutron_ep, token, settings["router_name"])
+    if router_id is None:
+        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
+        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
+        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
+        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
+        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
+    #Search and create security group
+    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
+    try:
+        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
+        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
+    except:
+        pass
+    #search and create image
+    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
+
+    passed=failed=0
+    '''
+    t3,message3= hci_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    print(t3)
+    print(message3)
+    
+    t4,message4= hci_test_case_4(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id)
+    print(t4)
+    print(message4)
+    
+    t5,message5= hci_test_case_5(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    print(t5)
+    print(message5)
+    
+    t6,message6= hci_test_case_6(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id)
+    print(t6)
+    print(message6)
+    
+    t7,message7= hci_test_case_7(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    print(t7)
+    print(message7)
+    '''
+    #t8,message8= hci_test_case_8(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    #print(t8)
+    #print(message8)
+    
+    #t9,message9= hci_test_case_9(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    #print(t9)
+    #print(message9)
+    
+    t10,message10= hci_test_case_10(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    print(t10)
+    print(message10)
+
+def barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips):
+     #creating zones
+    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+
+    #Search and create network
+    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
+    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
+    #Search and create subnet
+    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
+    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
+    router_id= search_router(neutron_ep, token, settings["router_name"])
+    if router_id is None:
+        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
+        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
+        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
+        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
+        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
+    #Search and create security group
+    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
+    try:
+        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
+        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
+    except:
+        pass
+    #search and create image
+    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
+
+    passed=failed=0
+    
+    t3,message3= barbican_test_case_1(nova_ep, neutron_ep, image_ep, barbican_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    print(t3)
+    print(message3)
+
 
 
 def main():
@@ -1370,7 +1562,7 @@ def main():
 
     #Validate Arguments
     logging.info("validating arguments")
-    if not(arguments.feature == "numa" or  arguments.feature == "hugepages" or arguments.feature == "ovsdpdk" or arguments.feature == "sriov" or arguments.feature=="mtu9000" or arguments.feature=="dvr" or arguments.feature=="octavia" or arguments.feature=="sriov_vflag"):
+    if not(arguments.feature == "numa" or  arguments.feature == "hugepages" or arguments.feature == "ovsdpdk" or arguments.feature == "sriov" or arguments.feature=="mtu9000" or arguments.feature=="dvr" or arguments.feature=="octavia" or arguments.feature=="sriov_vflag", arguments.feature=="hci", arguments.feature=="barbican"):
         logging.critical("Invalid Argument {}".format(arguments.feature))
         raise ValueError("Invalid Argument {}".format(arguments.feature))
     if arguments.deployment != "ceph":
@@ -1394,6 +1586,7 @@ def main():
     nova_ep= "{}:8774".format(overcloud_ip)
     image_ep= "{}:9292".format(overcloud_ip) 
     loadbal_ep= "{}:9876".format(overcloud_ip) 
+    barbican_ep="{}:9311".format(overcloud_ip) 
     undercloud_keystone_ep= "{}:5000".format(undercloud_ip)
     undercloud_nova_ep= "{}:8774".format(undercloud_ip)
 
@@ -1412,19 +1605,23 @@ def main():
     #get hist list
     hosts_list= get_compute_host_list(nova_ep, token)
     
+    if arguments.feature=="hci":
+        compute_node_search_pattern= "hci-"
+    else:
+        compute_node_search_pattern= "compute-"
     #update compute nodes names in baremetal nodes ip
     logging.info("updating compute nodes name in baremetal nodes ips")
-    compute0= [i for i in hosts_list if "compute-0" in i]
-    compoute0_key = [key for key, val in baremetal_nodes_ips.items() if "compute-0" in key]
+    compute0= [i for i in hosts_list if (compute_node_search_pattern+"0") in i]
+    compoute0_key = [key for key, val in baremetal_nodes_ips.items() if  (compute_node_search_pattern+"0") in key]
     baremetal_nodes_ips[compute0[0]] = baremetal_nodes_ips.pop(compoute0_key[0])
     
-    compute1= [i for i in hosts_list if "compute-1" in i]
-    compoute1_key = [key for key, val in baremetal_nodes_ips.items() if "compute-1" in key]
+    compute1= [i for i in hosts_list if  (compute_node_search_pattern+"1") in i]
+    compoute1_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"1") in key]
     baremetal_nodes_ips[compute1[0]] = baremetal_nodes_ips.pop(compoute1_key[0])
     
-    compute2= [i for i in hosts_list if "compute-2" in i]
-    compoute2_key = [key for key, val in baremetal_nodes_ips.items() if "compute-2" in key]
-    baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compoute2_key[0])
+    #compute2= [i for i in hosts_list if  (compute_node_search_pattern+"2") in i]
+    #compoute2_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"2") in key]
+    #baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compoute2_key[0])
 
     #Creating default parameters
 
@@ -1437,7 +1634,8 @@ def main():
     if arguments.feature == "ovsdpdk":
         ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
     if arguments.feature == "sriov":
-        sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
+        print("hello")
+        #sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
     if arguments.feature == "mtu9000":
         mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
     if arguments.feature == "dvr":
@@ -1445,7 +1643,15 @@ def main():
     if arguments.feature == "octavia":
         octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, token, settings, baremetal_nodes_ips) 
     if arguments.feature == "sriov_vflag":
+        #print("hello")
         sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
+    if arguments.deployment == "ceph":
+        print("hello")
+        #storage_test_cases(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips) 
+    if arguments.feature == "hci":
+        hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips) 
+    if arguments.feature == "barbican":
+        barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips) 
 
 if __name__ == "__main__":
     main()

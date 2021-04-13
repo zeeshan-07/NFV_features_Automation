@@ -455,6 +455,7 @@ def get_server_host(nova_ep, token, server_id):
 
 def check_server_status(nova_ep, token, server_id):
     response = send_get_request("{}/v2.1/servers/{}".format(nova_ep, server_id), token)
+    print(response.text)
     data= response.json()
     return data["server"]["OS-EXT-STS:vm_state"] if response.ok else response.raise_for_status()
 
@@ -499,14 +500,15 @@ def resize_server(nova_ep,token, server_id, flavor_id):
     print(response.text)
     return response.status_code
 
-def migrate_server(nova_ep,token, server_id):
+def live_migrate_server(nova_ep,token, server_id, host=None):
     payload= {
         "os-migrateLive": {
-            "host": None,
             "block_migration": "auto",
+            "host": host
         }
         }
     response=send_post_request("{}/v2.1/servers/{}/action".format(nova_ep, server_id), token, payload)
+    logging.info(response.text)
     return response.status_code
 
 def search_and_create_server(nova_ep, token, server_name, image_id, key_name, flavor_id,  network_id, security_group_id, host=None, availability_zone= None):
@@ -522,7 +524,7 @@ def search_and_create_sriov_server(nova_ep, token, server_name, image_id, key_na
     if server_id is None:
         server_url= create_sriov_server(nova_ep, token, server_name, image_id, key_name, flavor_id, port_id, availability_zone, security_group_id, host)
         server_id= get_server_detail(token, server_url)
-    logging.debug("Server 1 id: "+server_id)    
+    logging.debug("Server id: "+server_id)    
     return server_id
 
 '''
@@ -535,7 +537,7 @@ def parse_port_response(data, server_fixed_ip):
             return port["id"]   
 
 def get_ports(neutron_ep, token, network_id, server_ip):
-    response= send_get_request("{}//v2.0/ports?network_id={}".format(neutron_ep, network_id), token)
+    response= send_get_request("{}/v2.0/ports?network_id={}".format(neutron_ep, network_id), token)
     logging.info("successfully received ports list ") if response.ok else response.raise_for_status()
     return parse_port_response(response, server_ip)
 
@@ -556,32 +558,43 @@ def create_floating_ip(neutron_ep, token, network_id, subnet_id, server_ip_addre
 
 def attach_volume_to_server( nova_ep, token, project_id, server_id, volume_id, mount_point):
     payload= {"volumeAttachment": {"volumeId": volume_id}}
-    response= send_post_request("{}/v2.1/servers/{}/os-volume-attachments".format(nova_ep, server_id), token, payload)
+    response= requests.post("{}/v2.1/servers/{}/os-volume_attachments".format(nova_ep, server_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    print(response.text)
     logging.info("volume successfully attached to server") if response.ok else response.raise_for_status()
 
 def search_volume(storage_ep, token, volume_name, project_id):
-    response= send_get_request("{}/V3/{}/volumes".format(storage_ep, project_id), token)
+    response= send_get_request("{}/v3/{}/volumes".format(storage_ep, project_id), token)
     logging.info("successfully received volume list") if response.ok else response.raise_for_status()
-    return parse_json_to_search_resource(response, "volumes", "name", "id")
+    return parse_json_to_search_resource(response, "volumes", "name",volume_name, "id")
 
 '''
 Volume
 '''
 def create_volume(storage_ep, token, project_id, volume_name, volume_size):
-    payload= {
-
-        "volume": {
-        "name": volume_name,
-        "size": volume_size
-        }
-    }
-    response= send_post_request("{}/V3/{}/volumes".format(storage_ep, project_id), token, payload)
+    payload= {"volume":{
+                "size": volume_size,
+                "project_id":project_id,
+                "name": volume_name
+                }
+            }
+    response= requests.post("{}/v3/{}/volumes".format(storage_ep, project_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
     logging.info("successfully created volume {}".format(volume_name)) if response.ok else response.raise_for_status()
     data= response.json()
     return data["volume"]["id"]
+def search_and_create_volume(storage_ep, token, project_id, volume_name, volume_size):
+    volume_id= search_volume(storage_ep, token, volume_name, project_id)
+    if volume_id is None:
+        volume_id= create_volume(storage_ep, token, project_id, volume_name, volume_size)
+    logging.debug("Volume id: "+volume_id)    
+    return volume_id
+def check_volume_status(storage_ep, token, volume_id, project_id):
+    response = send_get_request("{}/v3/{}/volumes/{}".format(storage_ep, project_id, volume_id), token)
+    data= response.json()
+    return data["volume"]["status"] if response.ok else response.raise_for_status()
+
 
 def find_admin_project_id(keystone_ep, token):
-    response= send_get_request("{}/V3/projects".format(keystone_ep))
+    response= send_get_request("{}/v3/projects".format(keystone_ep), token)
     logging.info("successfully received project details") if response.ok else response.raise_for_status()
     return parse_json_to_search_resource(response, "projects", "name", "admin", "id")
  
@@ -819,7 +832,6 @@ def get_pool_member(loadbal_ep, token, pool_id):
     data= response.json()
     logging.info("successfully assigned member of pool") if response.ok else response.raise_for_status()
     return data["pool"]["members"][0]["id"] 
-
 def down_pool_member(loadbal_ep, token, pool_id, member_id ):
     payload= {
         "member": {
@@ -830,8 +842,6 @@ def down_pool_member(loadbal_ep, token, pool_id, member_id ):
     time.sleep(5)
     print(response.text)
     logging.info("successfully down a member in pool") if response.ok else response.raise_for_status()
-
-
 def up_pool_member(loadbal_ep, token, pool_id, member_id ):
     time.sleep(5)
     payload= {
@@ -897,4 +907,38 @@ def create_l7policy(loadbal_ep, token, policy_id):
     response= send_post_request('{}/v2.0/lbaas/l7policies/{}/rules'.format(loadbal_ep, policy_id), token, payload)
     print(response.text)
     logging.info("successfully added rule to policy {}".format(policy_id)) if response.ok else response.raise_for_status()
+#BArbican
+def add_key_to_store(barbican_ep, token, key):
+    payload= {"name": "signing-cert", "algorithm": "RSA", "mode": "cbc", "bit_length": 256,
+                "secret_type": "certificate", 
+                "payload": key,
+                "payload_content_type": "application/octet-stream", 
+                "payload_content_encoding": "base64"}
 
+    response= send_post_request("{}/v1/secrets/".format(barbican_ep), token, payload)
+    key_id= str(response.text)
+    key_id= key_id.split("/")
+    key_id= key_id[-1]
+    key_id= key_id.strip('"}')
+    
+    print("Key is: "+key_id)
+    logging.info("successfully add key to barbican") if response.ok else response.raise_for_status()
+    return key_id
+
+def create_barbican_image(nova_ep, token, image_name, container_format, disk_format, image_visibility, image_signature, key_id):
+    payload ={
+        "container_format": container_format,
+        "disk_format":disk_format,
+        "name": image_name,
+        "visibility":  image_visibility,
+        "img_signature": image_signature,
+        "img_signature_certificate_uuid": key_id,
+        "img_signature_hash_method":"SHA-256",
+        "img_signature_key_type": "RSA-PSS"
+    }
+    response = send_post_request("{}/v2.1/images".format(nova_ep), token, payload)
+    logging.info("successfully created image {}".format(image_name)) if response.ok else response.raise_for_status()
+    data= response.json()
+    return data["id"]
+
+    

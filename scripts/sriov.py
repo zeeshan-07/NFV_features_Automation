@@ -413,7 +413,7 @@ def sriov_test_cases_13_14(nova_ep, neutron_ep, image_ep, token, settings, barem
             print("Error 2 is: ".format(error2))
 
             if error1 =="" and error2 == "":
-                isPassed13==True     
+                isPassed13=True     
                 logging.info("Testcase 13 passed")
                 message13="legacy instance and sriov instance successfully pinged eachother on same compute node same network \n result of instance {} ping to instance {} is \n {} \n result of instance {} ping to instance {} is \n {} \n ".format(flaoting_1_ip, floating_2_ip_id, result1, flaoting_2_ip, flaoting_1_ip, result2)
                 

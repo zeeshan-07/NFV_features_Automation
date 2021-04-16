@@ -335,7 +335,7 @@ def create_keypair(nova_ep, token, keypair_name):
     response= send_post_request('{}/v2.1/os-keypairs'.format(nova_ep), token, payload)
     logging.info("successfully created keypair {}".format(keypair_name)) if response.ok else response.raise_for_status()
     data= response.json()
-    return data["keypair"]["public_key"]
+    return data["keypair"]["private_key"]
 def search_and_create_kaypair(nova_ep, token, key_name):
     keypair_public_key= search_keypair(nova_ep, token, key_name)
     if keypair_public_key is None:

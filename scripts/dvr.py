@@ -234,9 +234,9 @@ def dvr_test_case_7(baremetal_nodes_ips):
                 return False, message
                 break
         else:
-            logging.info("All controller nodes have DVR aget mode")
+            logging.info("All controller nodes have DVR_SNAT aget mode")
             logging.info("Testcase 7 Passed")
-            message= "DVR testcase 7 passed all controller nodes have dvr agent mode"+ message
+            message= "DVR testcase 7 passed all controller nodes have dvr_snat agent mode"+ message
             return True, message
     except Exception as e:
         logging.error("DVR Test case 7 failed/ error occured")
@@ -253,7 +253,7 @@ def dvr_test_case_8(baremetal_nodes_ips):
             ssh_output= ssh_into_node(node, command)
             logging.info("agent mode of  compute node {}, is {}".format(node, ssh_output[0].strip()))
             message= message+ " node {} agent mode: {} ".format(node, ssh_output[0].strip())
-            if ssh_output[0].strip() != "agent_mode=dvr_snat":
+            if ssh_output[0].strip() != "agent_mode=dvr":
                 logging.info("compute node {} do not have DVR agent mode, agent mode is: {}".format(node, ssh_output))
                 logging.error("Testcase 8 failed")
                 return False, message
@@ -325,8 +325,8 @@ def dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                         logging.info("DVR testcase 10 passed, icmp is not received on controller (bypassed) qrouter  namespace when both instances each other on different network and different compute nodes")
                         message="DVR testcase 10 passed, icmp is not received on controller (bypassed) qrouter namespace when both instances each other on different network and different compute nodes, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
                     else:    
-                        message="DVR testcase 10 filed, icmp is  received on controller ( not bypassed) qrouter  namespace when both instances each other on different network and different compute nodes, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
-                        logging.error("DVR testcase 10 filed, icmp is  received on controller ( not bypassed) qrouter  namespace when both instances each other on different network and different compute nodes")
+                        message="DVR testcase 10 failed, icmp is  received on controller ( not bypassed) qrouter  namespace when both instances each other on different network and different compute nodes, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
+                        logging.error("DVR testcase 10 failed, icmp is  received on controller ( not bypassed) qrouter  namespace when both instances each other on different network and different compute nodes")
                 else: 
                     message="DVR testcase 10 failed, failed and ping to google failed by instance "
                     logging.error("DVR testcase 10 failed, failed and ping instance floating ip from second instance")
@@ -432,8 +432,8 @@ def dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                             logging.info("DVR testcase 11 passed, icmp received received on controller  (not bypassed) snat  namespace when google is pinged from instance")
                             message="DVR testcase 11 passed, icmp is  received on controller (not bypassed) snat  namespace when google is pinged from instance, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
                         else:    
-                            message="DVR testcase 11 filed, icmp is not received on controller ( bypassed) snat  namespace when google is pinged from instance, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
-                            logging.error("DVR testcase 11 filed, icmp is not received on controller (bypassed) snat  namespace when google is pinged from instance")
+                            message="DVR testcase 11 failed, icmp is not received on controller ( bypassed) snat  namespace when google is pinged from instance, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
+                            logging.error("DVR testcase 11 failed, icmp is not received on controller (bypassed) snat  namespace when google is pinged from instance")
                     else: 
                         message="DVR testcase 11 failed, failed and ping to google failed by instance "
                         logging.error("DVR testcase 11 failed, failed and ping instance floating ip from second instance")
@@ -513,8 +513,8 @@ def dvr_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                         logging.info("DVR testcase 12 passed, icmp is not received on controller (bypassed) qrouter  namespace when google is pinged from instance")
                         message="DVR testcase 12 passed, icmp is not received on controller (bypassed) qrouter  namespace when google is pinged from instance, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
                     else:    
-                        message="DVR testcase 12 filed, icmp is  received on controller ( not bypassed) qrouter  namespace when google is pinged from instance, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
-                        logging.error("DVR testcase 12 filed, icmp is  received on controller ( not bypassed) qrouter  namespace when google is pinged from instance")
+                        message="DVR testcase 12 failed, icmp is  received on controller ( not bypassed) qrouter  namespace when google is pinged from instance, icmp status is {}, message is:\n {}\n ".format(icmp_check, tcpdump_message)
+                        logging.error("DVR testcase 12 failed, icmp is  received on controller ( not bypassed) qrouter  namespace when google is pinged from instance")
                 else: 
                     message="DVR testcase 12 failed, failed and ping to google failed by instance "
                     logging.error("DVR testcase 12 failed, failed and ping instance floating ip from second instance")

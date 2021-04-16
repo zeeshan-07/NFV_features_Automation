@@ -727,3 +727,160 @@ def sriov_test_cases_18(nova_ep, neutron_ep, image_ep, token, settings, baremeta
         pass      
     return isPassed, message
 
+def dvr_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+    logging.info("SRIOV Test Case 19 running")
+    isPassed= False
+    message=""
+    server1_id=flavor_id=server_floating_ip_id=server2_floating_ip_id=""
+    compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
+    compute1= compute1[0]
+    compute2 =  [key for key, val in baremetal_node_ips.items() if "compute-2" in key]
+    compute2= compute2[0]
+    try:
+        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
+        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+        #search and create server
+        server1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id, settings["key_name"], flavor_id,  network_id, security_group_id, compute1)
+        server_build_wait(nova_ep, token, [server1_id])
+        status1= check_server_status(nova_ep, token, server1_id)
+        if  status1 == "error":
+            logging.error("Test Case 19 failed")
+            logging.error("Instances creation failed")
+            message="one of the instance creation failed, insatnce 1 status is {}".format(status1)
+        else:
+            server_ip= get_server_ip(nova_ep, token, server1_id, settings["network1_name"])
+            logging.info("Server 1 Ip is: {}".format(server_ip))
+            server_port= get_ports(neutron_ep, token, network_id, server_ip)
+            logging.info("Server 1 Port is: {}".format(server_port))
+            public_network_id= search_network(neutron_ep, token, "public")
+            public_subnet_id= search_subnet(neutron_ep, token, "external_sub")
+            server_floating_ip, server_floating_ip_id= create_floating_ip(neutron_ep, token, public_network_id, public_subnet_id, server_ip, server_port)
+            logging.info("Waiting for server to boot")
+            wait_instance_boot(server_floating_ip)
+            logging.info("live migrating server")
+            response= live_migrate_server(nova_ep,token, server1_id, compute2)
+            logging.info("migration status code is: {}".format(response))
+            logging.info("waiting for migration")
+            time.sleep(30)
+            wait_instance_boot(server_floating_ip)
+            new_host= get_server_host(nova_ep, token, server1_id)
+            logging.info("new host is: "+new_host)
+            if(response == 202 and new_host != compute1):
+                response2 = os.system("ping -c 3 " + server_floating_ip)
+                if response2 == 0:
+                    isPassed= True
+                    logging.info ("Ping successfull!")
+                    logging.info("SRIOV test Case 19 Passed")
+                    message="SRIOV testcase 19 passed, live migration of instance is successfull, status code is {}, old host {}, new host {} \n".format(response, compute1, new_host)
+                else:
+                    logging.error("SRIOV test Case 19 failed, ping failed after live migration")
+                    message= "SRIOV test Case 19 failed, ping failed after live migration"
+            else:
+                logging.error("live migration of instance failed, status code is {},  old host name is {}, new host name is : {}".format(response, compute1, new_host))
+                message="live migration of instance failed, status code is {},  old host name is {}, new host name is : {}".format(response, compute1, new_host)
+        
+        logging.info("deleting flavor")
+        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        logging.info("deleting all servers")
+        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
+        time.sleep(10)
+        logging.info("releasing floating ip")
+        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)
+    except Exception as e:
+        logging.exception("DVR test Case 31 failed/ error occured")
+        message="DVR testcase 31 failed/ error occured {}".format(e)
+        logging.exception(e)
+        logging.error(e)
+        if(flavor_id != ""):
+            logging.info("deleting flavor")
+            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
+        if(server_floating_ip_id ==""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)
+    logging.info("DVR Test Case 31 finished")
+    return isPassed, message
+
+def dvr_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+    logging.info("HCI Test Case 32 running")
+    isPassed= False
+    message=""
+    server1_id=flavor_id=server_floating_ip_id=server2_floating_ip_id=""
+    compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
+    compute1= compute1[0]
+    try:
+        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
+        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+        #search and create server
+        server1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id, settings["key_name"], flavor_id,  network_id, security_group_id, compute1)
+        server_build_wait(nova_ep, token, [server1_id])
+        status1= check_server_status(nova_ep, token, server1_id)
+        if  status1 == "error":
+            logging.error("Test Case 32 failed")
+            logging.error("Instances creation failed")
+            message="one of the instance creation failed, insatnce 1 status is {}".format(status1)
+        else:
+            server_ip= get_server_ip(nova_ep, token, server1_id, settings["network1_name"])
+            logging.info("Server 1 Ip is: {}".format(server_ip))
+            server_port= get_ports(neutron_ep, token, network_id, server_ip)
+            logging.info("Server 1 Port is: {}".format(server_port))
+            public_network_id= search_network(neutron_ep, token, "public")
+            public_subnet_id= search_subnet(neutron_ep, token, "external_sub")
+            server_floating_ip, server_floating_ip_id= create_floating_ip(neutron_ep, token, public_network_id, public_subnet_id, server_ip, server_port)
+            logging.info("Waiting for server to boot")
+            wait_instance_boot(server_floating_ip)
+            logging.info("cold migrating server")
+            response=  perform_action_on_server(nova_ep,token, server1_id, "migrate")
+            time.sleep(20)
+            if response==202:
+                print("confirming migrate")
+                perform_action_on_server(nova_ep,token, server1_id, "confirmResize")
+
+            logging.info("migration status code is: {}".format(response))
+            logging.info("waiting for migration")
+            wait_instance_boot(server_floating_ip)
+            new_host= get_server_host(nova_ep, token, server1_id)
+            logging.info("new host is: "+new_host)
+            if(response == 202 and new_host != compute1):
+                response2 = os.system("ping -c 3 " + server_floating_ip)
+                if response2 == 0:
+                    isPassed= True
+                    logging.info ("Ping successfull!")
+                    logging.info("DVR test Case 32 Passed")
+                    message="DVR testcase 32 passed, cold migration of instance is successfull, status code is {}, old host {}, new host {} \n".format(response, compute1, new_host)
+                else:
+                    logging.error("DVR test Case 32 failed, ping failed after cold migration")
+                    message= "DVR test Case 32 failed, ping failed after cold migration"
+            else:
+                logging.error("cold vmigration of instance failed, status code is {}, old host name is {}, new host name is : {}".format(response, compute1, new_host))
+                message="cold migration of instance failed, status code is {},  old host name is {}, new host name is : {}".format(response, compute1, new_host)
+        
+        logging.info("deleting flavor")
+        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        logging.info("deleting all servers")
+        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
+        time.sleep(10)
+        logging.info("releasing floating ip")
+        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)
+ 
+    except Exception as e:
+        logging.exception("DVR test Case 32 failed/ error occured")
+        message="DVR testcase 32 failed/ error occured {}".format(e)
+        logging.exception(e)
+        logging.error(e)
+        if(flavor_id != ""):
+            logging.info("deleting flavor")
+            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
+        if(server_floating_ip_id ==""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)    
+    logging.info("DVR Test Case 32 finished")
+    return isPassed, message
+
+
+

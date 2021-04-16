@@ -106,7 +106,29 @@ def  read_rc_file(rc_file):
         raise FileNotFoundError ("File {} not found".format(rc_file))
      
 def numa_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips):
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_public_key= "" # search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
@@ -241,7 +263,29 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_no
     print("------------------------------")
 
 def hugepages_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips):
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private key file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
@@ -402,7 +446,32 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     except Exception as e:
         pass
     time.sleep(20)
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    
+    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private key file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
+        
+    #keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
@@ -587,6 +656,7 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     print("SRIOV message  {} \n".format(message18))
     print("------------------------------")
 
+
 def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips):
     #creating zones
     '''
@@ -607,7 +677,30 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
     except Exception as e:
         pass
     '''
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private key file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
+
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
@@ -756,7 +849,30 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
     print("------------------------------")
 
 def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips):
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private key file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
+
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 9000, settings["network_provider_type"], False)  
@@ -958,6 +1074,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
     image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
     
     passed=failed=0
+    
     t7, message7= dvr_test_case_7(baremetal_nodes_ips)
     if t7 == True:
         t7= "Passed"
@@ -987,7 +1104,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t10="Failed"
     print(t10)
     print(message10)
-    
+    '''
     t11, message11= dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id)
     if t11 == True:
         t11= "Passed"
@@ -997,7 +1114,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t11="Failed"
     print(t11)
     print(message11)
-    
+    '''
     t12, message12= dvr_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id)
     if t12 == True:
         t12= "Passed"
@@ -1007,6 +1124,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t12="Failed"
     print(t12)
     print(message12)
+    '''
      
     t13, message13= dvr_test_case_13(baremetal_nodes_ips)
     if t13 == True:
@@ -1121,6 +1239,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
     print(message31)
     print(t32)
     print(message32)
+    '''
 
     
 
@@ -1353,7 +1472,30 @@ def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, token, settings, barem
         pass
     time.sleep(20)
     
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private key file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
+
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
@@ -1491,7 +1633,30 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token,
         print(e)
     
     
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private key file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
+
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
@@ -1639,7 +1804,30 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token,
 
 def barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips):
      #creating zones
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
+    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+    keypair_private_key=""
+    logging.info("searching ssh key")
+    keyfile_name= os.path.expanduser(settings["key_file"])
+    if(keypair_key != None):
+        logging.info("deleting old ssh key")
+        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+
+    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+    logging.info("ssh key created")
+    try:
+        logging.info("deleting old private file")
+        os.system("sudo rm "+keyfile_name)
+    except OSError:
+        pass
+    logging.info("creating key file")
+    keyfile = open(keyfile_name, "w")
+    keyfile.write(keypair_private_key)
+    keyfile.close()
+    logging.info("setting permission to private key file")
+    command= "chmod 400 "+keyfile_name
+    os.system(command )
+
 
     #Search and create network
     network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
@@ -1754,8 +1942,7 @@ def main():
     if arguments.feature == "ovsdpdk":
         ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
     if arguments.feature == "sriov":
-        print("hello")
-        #sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
+        sriov_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
     if arguments.feature == "mtu9000":
         mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips) 
     if arguments.feature == "dvr":

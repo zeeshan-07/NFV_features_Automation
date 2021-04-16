@@ -114,8 +114,12 @@ def mtu9000_test_case_6(baremetal_nodes_ips):
         command= "ping -c 3 -s 8972 -M do {}".format(storage_nodes_ip[1])
         output1, error1= ssh_into_node(storage_nodes_ip[0], command)
         print(output1)
-        command= "ping -c 3 -s 8972 -M do {}".format(storage_nodes_ip[2])
-        output2, error2= ssh_into_node(storage_nodes_ip[0], command)
+        output2=""
+        error2="a"
+        if(len(storage_nodes_ip)==3):
+            command= "ping -c 3 -s 8972 -M do {}".format(storage_nodes_ip[2])
+            output2, error2= ssh_into_node(storage_nodes_ip[0], command)
+            storage_nodes_ip[2]=""
         if error1 =="" and  error2=="":
             logging.info("MTU9000 Testcase 6 Passed")
             isPassed= True
@@ -188,7 +192,7 @@ def mtu9000_test_case_9(neutron_ep, token, network_id):
         if(network["network"]["mtu"]==9000):
             logging.info("MTU9000 Testcase 9 Passed")
             isPassed= True
-            message= "Network has correct mtu size, mtu size is: ".format(network["network"]["mtu"])
+            message= "Network has correct mtu size, mtu size is: {}".format(network["network"]["mtu"])
         else: 
             logging.error("MTU 9000 Test Case 9 failed")
             message= "Network has correct mtu size, mtu size is: {} ".format(network["network"]["mtu"])
@@ -207,7 +211,7 @@ def mtu9000_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremet
     message=""
     # Search and Create Flavor
     flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    #put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+    put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
     #search and create server
     try:
         server_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id)
@@ -230,12 +234,12 @@ def mtu9000_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremet
     delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
     time.sleep(10)    
     return isPassed, message
-def mtu9000_test_case_11(neutron_ep, token, router_id):
+def mtu9000_test_case_11(neutron_ep, token, router_id, settings):
     logging.info("Starting MTU9000 testcase 11")
     isPassed= False
     message=""
     try: 
-        router_id= search_router(neutron_ep, token, "testing_router")
+        router_id= search_router(neutron_ep, token, settings["router_name"])
         if router_id is not None:
             logging.info("MTU9000 Testcase 11 Passed")
             isPassed= True
@@ -258,7 +262,7 @@ def mtu9000_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremet
     message=""
     # Search and Create Flavor
     flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    #put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
+    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id)
@@ -288,8 +292,9 @@ def mtu9000_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremet
         delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
         logging.info("deleting all servers")
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
+        time.sleep(20)
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_ip_id), token)
-        time.sleep(10)  
+          
     except Exception as e:
         logging.error("MTU 9000 Test Case 12 failed/ error occured")
         logging.exception(e)
@@ -303,7 +308,7 @@ def mtu9000_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremet
     compute0= compute0[0]
     # Search and Create Flavor
     flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    #put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
+    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id, compute0)
@@ -342,10 +347,11 @@ def mtu9000_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremet
         logging.info("deleting all servers")
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
+        time.sleep(20)
         logging.info("release floating ip")
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-        time.sleep(10)    
+            
     except Exception as e:
             logging.error("MTU 9000 Test Case 13 failed/ error occured")
             logging.exception(e)
@@ -362,7 +368,7 @@ def mtu9000_test_case_14(nova_ep, neutron_ep, image_ep, token, settings, baremet
     compute1= compute1[0]
     # Search and Create Flavor
     flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    #put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
+    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id, compute0)
@@ -403,10 +409,11 @@ def mtu9000_test_case_14(nova_ep, neutron_ep, image_ep, token, settings, baremet
         logging.info("deleting all servers")
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
+        time.sleep(20)
         logging.info("release floating ip")
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-        time.sleep(10)    
+        time.sleep(20)    
     except Exception as e:
         logging.error("MTU 9000 Test Case 14 failed/ error occured")            
         logging.exception(e)
@@ -423,7 +430,7 @@ def mtu9000_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremet
     compute1= compute1[0]
     # Search and Create Flavor
     flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    #put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
+    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network1_id, security_group_id, compute0)
@@ -462,10 +469,11 @@ def mtu9000_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremet
         logging.info("deleting all servers")
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
+        time.sleep(20)
         logging.info("release floating ip")
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-        time.sleep(10)  
+          
     except Exception as e:
             logging.error("MTU 9000 Test Case 15 failed/ error occured")
             logging.exception(e)
@@ -479,7 +487,7 @@ def mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremet
     compute0= compute0[0]
     # Search and Create Flavor
     flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    #put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
+    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network1_id, security_group_id, compute0)
@@ -519,10 +527,11 @@ def mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremet
         logging.info("deleting all servers")
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
+        time.sleep(20)
         logging.info("release floating ip")
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
         delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-        time.sleep(10)
+        
     except Exception as e:
             logging.error("MTU 9000 Test Case 16 failed/ error occured")
             logging.exception(e) 

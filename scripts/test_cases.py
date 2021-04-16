@@ -748,7 +748,6 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
     print("MTU test case 46 status: {} ".format(t46))
     print("Mtu message  {} \n".format(message46))
     print("------------------------------")
-    
     print("MTU test case 47 status: {} ".format(t47))
     print("Mtu message  {} \n".format(message47))
     print("------------------------------")    
@@ -814,6 +813,7 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
     else: 
         failed= failed+1
         t9= "Failed"
+    
     t10,message10= mtu9000_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t10 is True:
         passed=passed+1
@@ -821,8 +821,8 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
     else: 
         failed= failed+1
         t10= "Failed"
-
-    t11,message11= mtu9000_test_case_11(neutron_ep, token, router_id)
+    
+    t11,message11= mtu9000_test_case_11(neutron_ep, token, router_id, settings)
     if t11 is True:
         passed=passed+1
         t11= "Passed"
@@ -837,6 +837,8 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
     else: 
         failed= failed+1
         t12= "Failed"
+    
+    
     t13,message13= mtu9000_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t13 is True:
         passed=passed+1
@@ -854,6 +856,7 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
         failed= failed+1
         t14= "Failed"
     
+    
     t15,message15= mtu9000_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id)
     if t15 is True:
         passed=passed+1
@@ -861,6 +864,7 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal
     else: 
         failed= failed+1
         t15= "Failed"
+    
     t16,message16= mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id)
     if t16 is True:
         passed=passed+1
@@ -973,7 +977,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t8="Failed"
     print(t8)
     print(message8)
-    '''
+    
     t10, message10= dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, router_id, security_group_id, image_id)
     if t10 == True:
         t10= "Passed"
@@ -1089,7 +1093,36 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nod
         t32="Failed"
     print(t32)
     print(message32)
-    '''
+
+    print("&&&&&&&&&&&&&&&&&&7")
+    print(t7)
+    print(message7)
+    print(t8)
+    print(message8)
+    print(t10)
+    print(message10)
+    print(t11)
+    print(message11)
+    print(t12)
+    print(message12)
+    print(t13)
+    print(message13)
+    print(t14)
+    print(message14)
+    print(t15)
+    print(message15)
+    print(t19)
+    print(message19)
+    print(t17)
+    print(message17)
+    print(t23)
+    print(message23)
+    print(t31)
+    print(message31)
+    print(t32)
+    print(message32)
+
+    
 
 def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, token, settings, baremetal_nodes_ips):
     keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
@@ -1435,7 +1468,7 @@ def storage_test_cases(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, to
     #print(message7)
 def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips):
      #creating zones
-    '''
+    
     try:
         compute0 =  [key for key, val in baremetal_nodes_ips.items() if "hci-0" in key]
         compute0= compute0[0]
@@ -1455,8 +1488,8 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token,
         add_host_to_zone(nova_ep, token, nova1_id, compute2)
         time.sleep(20)
     except Exception as e:
-        pass
-    '''
+        print(e)
+    
     
     keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
 
@@ -1467,6 +1500,7 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token,
     subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
     subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
     router_id= search_router(neutron_ep, token, settings["router_name"])
+    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
     if router_id is None:
         public_network_id= public_network_id= search_network(neutron_ep, token, "public")
         public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
@@ -1484,38 +1518,124 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token,
     image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
 
     passed=failed=0
-    '''
-    t3,message3= hci_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    print(t3)
-    print(message3)
+    t3,message3= hci_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)    
+    if t3 == True:
+        t3= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t3="Failed"
     
-    t4,message4= hci_test_case_4(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id)
-    print(t4)
-    print(message4)
+    t4,message4= hci_test_case_4(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id, flavor_id)
+    if t4 == True:
+        t4= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t4="Failed"
     
-    t5,message5= hci_test_case_5(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    print(t5)
-    print(message5)
+    t5,message5= hci_test_case_5(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
+    if t5 == True:
+        t5= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t5="Failed"
+    t6,message6= hci_test_case_6(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id, flavor_id)
+    if t5 == True:
+        t6= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t6="Failed"
     
-    t6,message6= hci_test_case_6(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id)
-    print(t6)
-    print(message6)
+    t7,message7= hci_test_case_7(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
+    if t7 == True:
+        t7= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t7="Failed"
+
+    t8,message8= hci_test_case_8(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
+    if t8 == True:
+        t8= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t8="Failed"
+
+    t9,message9= hci_test_case_9(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
+    if t9 == True:
+        t9= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t9="Failed"
+
+    #Deleting zones
+    try:
+        remove_host_from_zone(nova_ep, token, nova0_id, compute0)
+        remove_host_from_zone(nova_ep, token, nova1_id, compute1)
+        remove_host_from_zone(nova_ep, token, nova1_id, compute2)
+        add_host_to_zone(nova_ep, token, default_zone_id, compute0)
+        add_host_to_zone(nova_ep, token, default_zone_id, compute1)
+        add_host_to_zone(nova_ep, token, default_zone_id, compute2)
+        delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova0_id), token)
+        delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova1_id), token)
+    except Exception as e:
+        print(e)
+        pass
+    t10,message10= hci_test_case_10(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
+    if t10 == True:
+        t10= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t10="Failed"
     
-    t7,message7= hci_test_case_7(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    print(t7)
-    print(message7)
-    '''
-    #t8,message8= hci_test_case_8(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    #print(t8)
-    #print(message8)
-    
-    #t9,message9= hci_test_case_9(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    #print(t9)
-    #print(message9)
-    
-    t10,message10= hci_test_case_10(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    print(t10)
-    print(message10)
+    print("---------------------------")
+    print("-------HCI Test Cases-------")
+    print("---------------------------")
+    print("Total Testcases {}".format(failed+passed))
+    print("Testcases Passed {}".format(passed))
+    print("Testcases Failed {}".format(failed))
+    print("HCI test case 3 status: {} ".format(t3))
+    print("HCI test case 4 status: {} ".format(t4))
+    print("HCI test case 5 status: {} ".format(t5))
+    print("HCI test case 6 status: {} ".format(t6))
+    print("HCI test case 7 status: {} ".format(t7))
+    print("HCI test case 8 status: {} ".format(t8))
+    print("HCI test case 9 status: {} ".format(t9))
+    print("HCI test case 10 status: {} ".format(t10))
+ 
+    print("------------------------------")
+    print("----------Description--------")
+    print("------------------------------")
+    print("HCI test case 3 status: {} ".format(t3))
+    print("HCI message  {} \n".format(message3))
+    print("------------------------------")
+    print("HCI test case 4 status: {} ".format(t4))
+    print("HCI message  {} \n".format(message4))
+    print("------------------------------")
+    print("HCI test case 5 status: {} ".format(t5))
+    print("HCI message  {} \n".format(message5))
+    print("------------------------------")
+    print("HCI test case 6 status: {} ".format(t6))
+    print("HCI message  {} \n".format(message6))
+    print("------------------------------")
+    print("HCI test case 7 status: {} ".format(t7))
+    print("HCI message  {} \n".format(message7))
+    print("------------------------------")
+    print("HCI test case 8 status: {} ".format(t8))
+    print("HCI message  {} \n".format(message8))
+    print("------------------------------")
+    print("HCI test case 8 status: {} ".format(t9))
+    print("HCI message  {} \n".format(message9))
+    print("------------------------------")
+    print("HCI test case 10 status: {} ".format(t10))
+    print("HCI message  {} \n".format(message10))
+    print("------------------------------")
 
 def barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips):
      #creating zones
@@ -1619,9 +1739,9 @@ def main():
     compoute1_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"1") in key]
     baremetal_nodes_ips[compute1[0]] = baremetal_nodes_ips.pop(compoute1_key[0])
     
-    #compute2= [i for i in hosts_list if  (compute_node_search_pattern+"2") in i]
-    #compoute2_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"2") in key]
-    #baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compoute2_key[0])
+    compute2= [i for i in hosts_list if  (compute_node_search_pattern+"2") in i]
+    compoute2_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"2") in key]
+    baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compoute2_key[0])
 
     #Creating default parameters
 

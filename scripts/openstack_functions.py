@@ -3,6 +3,7 @@ import json
 import os
 import time
 import logging
+import paramiko
 
 def send_get_request(api_url, token, header="application/json"):
     try:
@@ -27,7 +28,8 @@ def send_post_request(api_url, token, payload, header='application/json'):
        logging.exception(e)
 def send_delete_request(api_url, token, header='application/json' ):
     try:
-        return requests.delete(api_url, headers= {'content-type':header, 'X-Auth-Token': token})
+        requests.delete(api_url, headers= {'content-type':header, 'X-Auth-Token': token})
+        time.sleep(20)
     except Exception as e:
        logging.error( "request processing failure ", stack_info=True)
        logging.exception(e)
@@ -514,6 +516,7 @@ def live_migrate_server(nova_ep,token, server_id, host=None):
 def search_and_create_server(nova_ep, token, server_name, image_id, key_name, flavor_id,  network_id, security_group_id, host=None, availability_zone= None):
     server_id= search_server(nova_ep, token, server_name)
     if server_id is None:
+        time.sleep(10)
         server_url= create_server(nova_ep, token, server_name, image_id, key_name, flavor_id,  network_id, security_group_id, host, availability_zone)
         time.sleep(5)
         server_id= get_server_detail(token, server_url)
@@ -550,11 +553,34 @@ def create_floating_ip(neutron_ep, token, network_id, subnet_id, server_ip_addre
                "port_id": server_port_id
               }
              } 
+    time.sleep(10)
     response= send_post_request("{}/v2.0/floatingips".format(neutron_ep), token, payload)
     print(response.text)
     logging.info("successfully assigned floating ip to server") if response.ok else response.raise_for_status()
     data= response.json()
     return data["floatingip"]["floating_ip_address"], data["floatingip"]["id"]
+def create_floatingip_wo_port(neutron_ep, token, network_id ):
+    payload= {
+        "floatingip": {
+            "floating_network_id": network_id
+            }
+        }
+    response= send_post_request("{}//v2.0/floatingips".format(neutron_ep), token, payload)
+    time.sleep(10)
+    print(response.text)
+    data=response.json()
+    logging.info("successfully created floating ip") if response.ok else response.raise_for_status()
+    return data["floatingip"]["floating_ip_address"], data["floatingip"]["id"]
+def assign_ip_to_port(neutron_ep, token, port_id, floatingip_id ):
+    payload= {
+        "floatingip": {
+            "port_id": port_id
+            }
+        }
+    response= send_put_request("{}/v2.0/floatingips/{}".format(neutron_ep, floatingip_id), token, payload)
+    print(response.text)
+    time.sleep(10)
+    logging.info("successfully assigned floating to port") if response.ok else response.raise_for_status()
 
 def attach_volume_to_server( nova_ep, token, project_id, server_id, volume_id, mount_point):
     payload= {"volumeAttachment": {"volumeId": volume_id}}
@@ -570,7 +596,7 @@ def search_volume(storage_ep, token, volume_name, project_id):
 '''
 Volume
 '''
-def create_volume(storage_ep, token, project_id, volume_name, volume_size):
+def create_volume(storage_ep, token, project_id, volume_name, volume_size, availability_zone=None):
     payload= {"volume":{
                 "size": volume_size,
                 "project_id":project_id,
@@ -581,10 +607,10 @@ def create_volume(storage_ep, token, project_id, volume_name, volume_size):
     logging.info("successfully created volume {}".format(volume_name)) if response.ok else response.raise_for_status()
     data= response.json()
     return data["volume"]["id"]
-def search_and_create_volume(storage_ep, token, project_id, volume_name, volume_size):
+def search_and_create_volume(storage_ep, token, project_id, volume_name, volume_size, availability_zone=None):
     volume_id= search_volume(storage_ep, token, volume_name, project_id)
     if volume_id is None:
-        volume_id= create_volume(storage_ep, token, project_id, volume_name, volume_size)
+        volume_id= create_volume(storage_ep, token, project_id, volume_name, volume_size, )
     logging.debug("Volume id: "+volume_id)    
     return volume_id
 def check_volume_status(storage_ep, token, volume_id, project_id):
@@ -940,5 +966,85 @@ def create_barbican_image(nova_ep, token, image_name, container_format, disk_for
     logging.info("successfully created image {}".format(image_name)) if response.ok else response.raise_for_status()
     data= response.json()
     return data["id"]
+
+#
+#Server Functions
+#
+
+def server_build_wait(nova_ep, token, server_ids):
+    while True:
+        flag=0
+        for server in server_ids:
+            status= check_server_status(nova_ep, token, server)
+            print(status)
+            if not (status == "active" or status=="error"):
+                logging.info("Waiting for server/s to build")
+                flag=1
+                time.sleep(10)
+        if flag==0:
+            break
+def wait_instance_boot(ip):
+    retries=0
+    while(1):
+        response = os.system("ping -c 3 " + ip)
+        if response == 0:
+            logging.info ("Ping successfull!")
+            break 
+            return True
+        logging.info("Waiting for server to boot")
+        time.sleep(30)
+        retries=retries+1
+        if(retries==4):
+            break
+            return False
+def wait_instance_ssh(ip, settings):
+    try:
+        remove_key= "ssh-keygen -R {}".format(server1)
+        os.system(remove_key)
+    except:
+        pass
+    retries=0
+    while(1):
+        try:
+            client= paramiko.SSHClient()
+            paramiko.AutoAddPolicy()
+            client.load_system_host_keys()
+            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            client.connect(ip, port=22, username="centos", key_filename=os.path.expanduser(settings["key_file"]))
+            break
+        except Exception as e:
+            print(e)
+        
+            logging.info("Waiting for server to ssh")
+            time.sleep(30)
+        retries=retries+1
+        if(retries==4):
+            break
+
+def instance_ssh(server1, server2, settings, command):
+    try:
+        remove_key= "ssh-keygen -R {}".format(server1)
+        os.system(remove_key)
+    except:
+        pass
+    try:
+        client= paramiko.SSHClient()
+        paramiko.AutoAddPolicy()
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(server1, port=22, username="centos", key_filename=os.path.expanduser(settings["key_file"]))
+        logging.info("SSH Session is established")
+        logging.info("Running command in a compute node")
+        stdin, stdout, stderr = client.exec_command(command)
+        logging.info("command {} successfully executed on compute node {}".format(command, server2))
+        output= stdout.read().decode('ascii')
+        error= stderr.read().decode('ascii')
+        return output, error
+    except Exception as e:
+        logging.exception(e)
+        logging.error("error ocurred when making ssh connection and running command on remote server") 
+    finally:
+        client.close()
+        logging.info("Connection from client has been closed")  
 
     

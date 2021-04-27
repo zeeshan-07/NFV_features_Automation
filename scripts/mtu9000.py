@@ -1,109 +1,107 @@
 from openstack_functions import *
 import logging
-import paramiko
-from hugepages import *
-import os
-from numa import *
-from test_cases import *
-import time
-import math
 
-def ssh_into_node(host_ip, command):
-    try:
-        user_name = "heat-admin"
-        logging.info("Trying to connect with node {}".format(host_ip))
-        # ins_id = conn.get_server(server_name).id
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_session = ssh_client.connect(host_ip, username="heat-admin",key_filename=os.path.expanduser("~/.ssh/id_rsa"))  # noqa
-        logging.info("SSH Session is established")
-        logging.info("Running command in a compute node")
-        stdin, stdout, stderr = ssh_client.exec_command(command)
-        logging.info("command {} successfully executed on compute node {}".format(command, host_ip))
-        output= stdout.read().decode('ascii')
-        error= stderr.read().decode('ascii')
+def mtu9000_test_case_3(baremetal_nodes_ips):
+    logging.info("Starting MTU9000 testcase 3")
+    isPassed= False
+    message=""
+    error=0
+    try: 
+        compute_nodes_ip= [val for key, val in baremetal_nodes_ips.items() if "compute" in key]
+        command= "ifconfig | grep mtu"
+        message="MTU on interfaces is: \n"
+        for node in compute_nodes_ip:
+            output, error1= ssh_into_node(node, command)
+            message= message+ " compute node {} \n {}".format(node, output)
+            output= output.split('\n')
+            for interface in output:
+                mtu = interface.split(" ")
+                if( mtu[len(mtu)-1] != str(9000)):
+                    if(mtu[0] !="lo:" and mtu[0] != "bt-int:" and mtu[0] != "br-tun:"):
+                        error=1
+        if error== 0:
+            logging.info("MTU9000 Testcase 3 Passed")
+            isPassed= True
+            message= "MTU9000 Testcase 3 Passed, all compute nodes have mtu 9000 on interfaces \n{}".format(message) 
+        else: 
+          
+            logging.error("MTU 9000 Test Case 3 failed")
+            message= "MTU9000 Testcase 3 failed, all compute nodes do not have mtu 9000 on interfaces \n{}".format(message) 
 
-        return output, error
     except Exception as e:
+        logging.error("MTU 9000 Test Case 3 failed")
+        message= "MTU9000 Testcase 3 failed/ error occured"
         logging.exception(e)
-        logging.error("error ocurred when making ssh connection and running command on remote server") 
-    finally:
-        ssh_client.close()
-        logging.info("Connection from client has been closed")  
+    logging.info("Mtu9000 Test Case 3 Finished")
+    return isPassed, message
 
-def server_build_wait(nova_ep, token, server_ids):
-    while True:
-        flag=0
-        for server in server_ids:
-            status= check_server_status(nova_ep, token, server)
-            print(status)
-            if not (status == "active" or status=="error"):
-                logging.info("Waiting for server/s to build")
-                flag=1
-                time.sleep(10)
-        if flag==0:
-            break
-def ssh_conne(server1, server2, settings):
-    try:
-        command= "ping  -c 3 -s 8972 -M do {}".format(server2)
-        client= paramiko.SSHClient()
-        paramiko.AutoAddPolicy()
-        client.load_system_host_keys()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(server1, port=22, username="centos", key_filename=os.path.expanduser(settings["key_file"]))
-        logging.info("SSH Session is established")
-        logging.info("Running command in a compute node")
-        stdin, stdout, stderr = client.exec_command(command)
-        logging.info("command {} successfully executed on compute node {}".format(command, server2))
-        output= stdout.read().decode('ascii')
-        error= stderr.read().decode('ascii')
-        return output, error
+def mtu9000_test_case_4(baremetal_nodes_ips):
+    logging.info("Starting MTU9000 testcase 4")
+    isPassed= False
+    message=""
+    error=0 
+    try: 
+        controller_nodes_ip= [val for key, val in baremetal_nodes_ips.items() if "controller" in key]
+        command= "ifconfig | grep mtu"
+        message="MTU on interfaces is: \n"
+        for node in controller_nodes_ip:
+            output, error1= ssh_into_node(node, command)
+            message= message+ " controller node {} \n {}".format(node, output)
+            output= output.split('\n')
+            for interface in output:
+                mtu = interface.split(" ")
+                if( mtu[len(mtu)-1] != str(9000)):
+                    if(mtu[0] !="lo:" and mtu[0] != "bt-int:" and mtu[0] != "br-tun:"):
+                        error=1
+        if error== 0:
+            logging.info("MTU9000 Testcase 4 Passed")
+            isPassed= True
+            message= "MTU9000 Testcase 4 Passed, all controller nodes have mtu 9000 on interfaces \n{}".format(message) 
+        else: 
+            logging.error("MTU 9000 Test Case 4 failed")
+            message= "MTU9000 Testcase 4 failed, all controller nodes do not have mtu 9000 on interfaces \n{}".format(message) 
+
     except Exception as e:
+        logging.error("MTU 9000 Test Case 4 failed")
+        message= "MTU9000 Testcase 4 failed/ error occured"
         logging.exception(e)
-        logging.error("error ocurred when making ssh connection and running command on remote server") 
-    finally:
-        client.close()
-        logging.info("Connection from client has been closed")  
+    logging.info("Mtu9000 Test Case 4 Finished")
+    return isPassed, message
 
-def wait_instance_boot(ip):
-    retries=0
-    while(1):
-        response = os.system("ping -c 3 " + ip)
-        if response == 0:
-            logging.info ("Ping successfull!")
-            break 
-            return True
-        logging.info("Waiting for server to boot")
-        time.sleep(30)
-        retries=retries+1
-        if(retries==10):
-            break
-            return False
-def wait_instance_ssh(ip, settings):
-    result=""
-    retries=0
-    ssh=False
-    while(1):
-        try:
-            client= paramiko.SSHClient()
-            paramiko.AutoAddPolicy()
-            client.load_system_host_keys()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            print("ip to ssh {}".format(ip))
-            result= client.connect(ip, port=22, username="centos", key_filename=os.path.expanduser(settings["key_file"]))
-            print(result)
-            ssh=True
-            break
-        except:    
-            print(result)
-            logging.info("Waiting for server to ssh")
-            time.sleep(30)
+def mtu9000_test_case_5(baremetal_nodes_ips):
+    logging.info("Starting MTU9000 testcase 5")
+    isPassed= False
+    message=""
+    error=0
+    
+    try: 
+        storage_nodes_ip= [val for key, val in baremetal_nodes_ips.items() if "storage" in key]
+        command= "ifconfig | grep mtu"
+        message="MTU on interfaces is: \n"
+        for node in storage_nodes_ip:
+            output, error1= ssh_into_node(node, command)
+            message= message+ " storage node {} \n {}".format(node, output)
+            output= output.split('\n')
+            for interface in output:
+                mtu = interface.split(" ")
+                if( mtu[len(mtu)-1] != str(9000)):
+                    if(mtu[0] !="lo:" and mtu[0] != "bt-int:" and mtu[0] != "br-tun:"):
+                        error=1
+        if error== 0:
+            logging.info("MTU9000 Testcase 5 Passed")
+            isPassed= True
+            message= "MTU9000 Testcase 5 Passed, all storage nodes have mtu 9000 on interfaces \n{}".format(message) 
+        else: 
+            logging.error("MTU 9000 Test Case 4 failed")
+            message= "MTU9000 Testcase 5 failed, all storage nodes do not have mtu 9000 on interfaces \n{}".format(message) 
 
-        retries=retries+1
-        if(retries==10):
-            break
-    return ssh
-        
+    except Exception as e:
+        logging.error("MTU 9000 Test Case 5 failed")
+        message= "MTU9000 Testcase 5 failed/ error occured"
+        logging.exception(e)
+    logging.info("Mtu9000 Test Case 5 Finished")
+    return isPassed, message
+
 def mtu9000_test_case_6(baremetal_nodes_ips):
     logging.info("Starting MTU9000 testcase 6")
     isPassed= False
@@ -119,7 +117,8 @@ def mtu9000_test_case_6(baremetal_nodes_ips):
         if(len(storage_nodes_ip)==3):
             command= "ping -c 3 -s 8972 -M do {}".format(storage_nodes_ip[2])
             output2, error2= ssh_into_node(storage_nodes_ip[0], command)
-            storage_nodes_ip[2]=""
+        else:
+            storage_nodes_ip.append("")
         if error1 =="" and  error2=="":
             logging.info("MTU9000 Testcase 6 Passed")
             isPassed= True
@@ -131,6 +130,7 @@ def mtu9000_test_case_6(baremetal_nodes_ips):
         logging.error("MTU 9000 Test Case 6 failed")
         logging.info("Storage node can not ping other two storage nodes with mtu size 8972 /error occured")
         logging.exception(e)
+        message="MTU terstcase 6 failed/ error occured"
         
     logging.info("Mtu9000 Test Case 6 Finished")
     return isPassed, message
@@ -155,6 +155,7 @@ def mtu9000_test_case_7(baremetal_nodes_ips):
         logging.error("MTU 9000 Test Case 7 failed")
         logging.info("Controller node can not ping other two controller nodes with mtu size 8972 /error occured")
         logging.exception(e)
+        message="MTU terstcase 7 failed/ error occured"
         
     logging.info("Mtu9000 Test Case 8 Finished")
     return isPassed, message
@@ -180,6 +181,7 @@ def mtu9000_test_case_8(baremetal_nodes_ips):
         logging.error("MTU 9000 Test Case 8 failed")
         logging.info("Compute node can not ping other two compute nodes with mtu size 8972 /error occured")
         logging.exception(e)
+        message="MTU terstcase 8 failed/ error occured"
         
     logging.info("Mtu9000 Test Case 8 Finished")
     return isPassed, message
@@ -201,17 +203,15 @@ def mtu9000_test_case_9(neutron_ep, token, network_id):
         logging.error("Network mtu verification testcase failed/ error occured")
         message="Network mtu verification testcase failed/ error occured"
         logging.exception(e) 
+        message="MTU terstcase 9 failed/ error occured"
     logging.info("Mtu9000 Test Case 9 Finished")
+
     return isPassed, message
 
-
-def mtu9000_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+def mtu9000_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id, flavor_id):  
     logging.info("MTU9000 Test Case 10")
     isPassed= False
-    message=""
-    # Search and Create Flavor
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+    message=server_id=""
     #search and create server
     try:
         server_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id)
@@ -224,15 +224,16 @@ def mtu9000_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremet
         else: 
             logging.error("MTU 9000 Test Case 10 failed")
             message= "instance creation failed on network with mtu size 9000. instance state is: {}".format(status)
+        if(server_id != ""):
+                logging.info("deleting all servers")
+                delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token) 
     except Exception as e:
         logging.error("MTU 9000 Test Case 10 failed/ error occured")
         logging.exception(e)
-        pass
-    logging.info("deleting flavor")
-    delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-    logging.info("deleting all servers")
-    delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
-    time.sleep(10)    
+        message="MTU terstcase 10 failed/ error occured"
+        if(server_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)    
     return isPassed, message
 def mtu9000_test_case_11(neutron_ep, token, router_id, settings):
     logging.info("Starting MTU9000 testcase 11")
@@ -256,13 +257,10 @@ def mtu9000_test_case_11(neutron_ep, token, router_id, settings):
 
     return isPassed, message
 
-def mtu9000_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+def mtu9000_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id, flavor_id):  
     logging.info("MTU9000 Test Case 12")
     isPassed= False
-    message=""
-    # Search and Create Flavor
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
+    message=server_id=floating_ip_id=""
     #search and create server
     try:
         server_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id)
@@ -277,7 +275,7 @@ def mtu9000_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremet
             logging.info("Waiting for server to boot")
             wait_instance_boot(flaoting_ip)
             ssh= wait_instance_ssh(flaoting_ip, settings)
-            print("ssh is: /{}/".format(ssh))
+            
             if ssh== True:
                 logging.info("MTU9000 Testcase 12 Passed")
                 isPassed= True
@@ -288,27 +286,30 @@ def mtu9000_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremet
         else: 
             logging.error("MTU 9000 Test Case 12 failed")
             message= "instance creation failed on network with mtu size 9000. instance state is: {}".format(status)
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
         logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
-        time.sleep(20)
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_ip_id), token)
-          
+        if(server_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token) 
+        if(floating_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_ip_id), token)
     except Exception as e:
         logging.error("MTU 9000 Test Case 12 failed/ error occured")
         logging.exception(e)
-        pass   
+        message="MTU terstcase 12 failed/ error occured"
+        if(server_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token) 
+        if(floating_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_ip_id), token)   
     return isPassed, message
-def mtu9000_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+def mtu9000_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id, flavor_id):  
     logging.info("MTU9000 Test Case 13")
     isPassed= False
-    message=""
+    message=server_1_id=server_2_id=floating_1_ip_id=floating_2_ip_id=""
     compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
     compute0= compute0[0]
-    # Search and Create Flavor
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id, compute0)
@@ -330,9 +331,11 @@ def mtu9000_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremet
             wait_instance_boot(flaoting_2_ip)
             ssh= wait_instance_ssh(flaoting_1_ip, settings)
             ssh= wait_instance_ssh(flaoting_2_ip, settings)
-            output1, error1= ssh_conne(flaoting_1_ip, flaoting_2_ip, settings)
-            output2, error2= ssh_conne(flaoting_2_ip, flaoting_1_ip, settings)
-            if error1=="" or error2=="" :
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_2_ip)
+            output1, error1= instance_ssh(flaoting_1_ip, settings, command)
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_1_ip)
+            output2, error2= instance_ssh(flaoting_2_ip, settings, command)
+            if error1=="" and error2=="" and "icmp_seq=3 Destination Host Unreachable" not in output1 and "icmp_seq=3 Destination Host Unreachable" not in output2 :
                 logging.info("MTU9000 Testcase 13 Passed")
                 isPassed= True
                 message= "both instances successfully pinged other other on mtu size 8972, on same compute node, same network \n Ping Results are: \n ping to  instance2 {} from instance 1 {} \n {}\n \n ping to instance 1 {} from instance2: {}\n {}\n".format(flaoting_2_ip, flaoting_1_ip, output1, flaoting_1_ip, flaoting_2_ip, output2)
@@ -342,33 +345,46 @@ def mtu9000_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremet
         else: 
             logging.error("MTU 9000 Test Case 13 failed")
             message= "instance creation failed on network with mtu size 9000. instance 1 state is: {}, instance 2 state is: {}".format(status1, status2 )
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
-        time.sleep(20)
-        logging.info("release floating ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-            
+        
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)      
     except Exception as e:
-            logging.error("MTU 9000 Test Case 13 failed/ error occured")
-            logging.exception(e)
-            print(e) 
+        logging.error("MTU 9000 Test Case 13 failed/ error occured")
+        logging.exception(e)
+        message="MTU terstcase 13 failed/ error occured"
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
+            
     return isPassed, message
 
-def mtu9000_test_case_14(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+def mtu9000_test_case_14(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id, flavor_id):  
     logging.info("MTU9000 Test Case 14")
     isPassed= False
-    message=""
+    message=server_1_id=server_2_id=floating_1_ip_id= floating_2_ip_id=""
     compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
     compute0= compute0[0]
     compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
     compute1= compute1[0]
-    # Search and Create Flavor
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network_id, security_group_id, compute0)
@@ -392,9 +408,11 @@ def mtu9000_test_case_14(nova_ep, neutron_ep, image_ep, token, settings, baremet
             ssh= wait_instance_ssh(flaoting_1_ip, settings)
             print("2 ip: {}".format(flaoting_2_ip))
             ssh= wait_instance_ssh(flaoting_2_ip, settings)
-            output1, error1= ssh_conne(flaoting_1_ip, flaoting_2_ip, settings)
-            output2, error2= ssh_conne(flaoting_2_ip, flaoting_1_ip, settings)
-            if error1=="" or error2=="" :
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_2_ip)
+            output1, error1= instance_ssh(flaoting_1_ip, settings, command)
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_1_ip)
+            output2, error2= instance_ssh(flaoting_2_ip, settings, command)
+            if error1=="" and error2=="" and "icmp_seq=3 Destination Host Unreachable" not in output1 and "icmp_seq=3 Destination Host Unreachable" not in output2 :
                 logging.info("MTU9000 Testcase 14 Passed")
                 isPassed= True
                 message= "both instances successfully pinged other other on mtu size 8972, on same network, different compute nodes \n Ping Results are: \n ping to  instance2 {} from instance 1 {} \n {}\n \n ping to instance 1 {} from instance2: {}\n {}\n".format(flaoting_2_ip, flaoting_1_ip, output1, flaoting_1_ip, flaoting_2_ip, output2)
@@ -404,33 +422,44 @@ def mtu9000_test_case_14(nova_ep, neutron_ep, image_ep, token, settings, baremet
         else: 
             logging.error("MTU 9000 Test Case 14 failed")
             message= "instance creation failed on network with mtu size 9000. instance 1 state is: {}, instance 2 state is: {}".format(status1, status2 )
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
-        time.sleep(20)
-        logging.info("release floating ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-        time.sleep(20)    
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
     except Exception as e:
         logging.error("MTU 9000 Test Case 14 failed/ error occured")            
         logging.exception(e)
-        print(e) 
+        message="MTU terstcase 14 failed/ error occured"
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
     return isPassed, message
 
-def mtu9000_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id):  
+def mtu9000_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id, flavor_id):  
     logging.info("MTU9000 Test Case 15")
     isPassed= False
-    message=""
+    message=server_1_id=server_2_id=floating_1_ip_id= floating_2_ip_id=""
     compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
     compute0= compute0[0]
     compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
     compute1= compute1[0]
-    # Search and Create Flavor
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network1_id, security_group_id, compute0)
@@ -452,9 +481,11 @@ def mtu9000_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremet
             wait_instance_boot(flaoting_2_ip)
             ssh= wait_instance_ssh(flaoting_1_ip, settings)
             ssh= wait_instance_ssh(flaoting_2_ip, settings)
-            output1, error1= ssh_conne(flaoting_1_ip, flaoting_2_ip, settings)
-            output2, error2= ssh_conne(flaoting_2_ip, flaoting_1_ip, settings)
-            if error1=="" or error2=="" :
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_2_ip)
+            output1, error1= instance_ssh(flaoting_1_ip, settings, command)
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_1_ip)
+            output2, error2= instance_ssh(flaoting_2_ip, settings, command)
+            if error1=="" and error2=="" and "icmp_seq=3 Destination Host Unreachable" not in output1 and "icmp_seq=3 Destination Host Unreachable" not in output2 :
                 logging.info("MTU9000 Testcase 15 Passed")
                 isPassed= True
                 message= "both instances successfully pinged other other on mtu size 8972, on different network, different compute nodes \n Ping Results are: \n ping to  instance2 {} from instance 1 {} \n {}\n \n ping to instance 1 {} from instance2: {}\n {}\n".format(flaoting_2_ip, flaoting_1_ip, output1, flaoting_1_ip, flaoting_2_ip, output2)
@@ -465,29 +496,44 @@ def mtu9000_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremet
             logging.error("MTU 9000 Test Case 15 failed")
             message= "instance creation failed on network with mtu size 9000. instance 1 state is: {}, instance 2 state is: {}".format(status1, status2 ) 
         logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
-        time.sleep(20)
-        logging.info("release floating ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-          
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
+
     except Exception as e:
-            logging.error("MTU 9000 Test Case 15 failed/ error occured")
-            logging.exception(e)
-            print(e)   
+        logging.error("MTU 9000 Test Case 15 failed/ error occured")
+        logging.exception(e)
+        message="MTU terstcase 15 failed/ error occured" 
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
+
+
     return isPassed, message
-def mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id):  
+def mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id, flavor_id):  
     logging.info("MTU9000 Test Case 16")
     isPassed= False
-    message=""
+    message=server_1_id=server_2_id=floating_1_ip_id= floating_2_ip_id=""
     compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
     compute0= compute0[0]
-    # Search and Create Flavor
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, False)
     #search and create server
     try:
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network1_id, security_group_id, compute0)
@@ -509,9 +555,11 @@ def mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremet
             wait_instance_boot(flaoting_2_ip)
             ssh= wait_instance_ssh(flaoting_1_ip, settings)
             ssh= wait_instance_ssh(flaoting_2_ip, settings)
-            output1, error1= ssh_conne(flaoting_1_ip, flaoting_2_ip, settings)
-            output2, error2= ssh_conne(flaoting_2_ip, flaoting_1_ip, settings)
-            if error1=="" or error2=="" :
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_2_ip)
+            output1, error1= instance_ssh(flaoting_1_ip, settings, command)
+            command= "ping  -c 3 -s 8972 -M do {}".format(flaoting_1_ip)
+            output2, error2= instance_ssh(flaoting_2_ip, settings, command)
+            if error1=="" and error2=="" and "icmp_seq=3 Destination Host Unreachable" not in output1 and "icmp_seq=3 Destination Host Unreachable" not in output2 :
                 logging.info("MTU9000 Testcase 16 Passed")
                 isPassed= True
                 message= "both instances successfully pinged other other on mtu size 8972, on different network, same compute nodes \n Ping Results are: \n ping to  instance2 {} ({}) from instance 1 {} ({}) \n {}\n \n ping to instance 1 {} from instance2: {}\n {}\n".format(flaoting_2_ip, server_1_ip, flaoting_1_ip, server_2_ip, output1, flaoting_1_ip, flaoting_2_ip, output2)
@@ -522,20 +570,35 @@ def mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremet
             logging.error("MTU 9000 Test Case 16 failed")
             message= "instance creation failed on network with mtu size 9000. instance 1 state is: {}, instance 2 state is: {}".format(status1, status2 )
     
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
-        time.sleep(20)
-        logging.info("release floating ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
         
     except Exception as e:
-            logging.error("MTU 9000 Test Case 16 failed/ error occured")
-            logging.exception(e) 
-            message="MTU 9000 Test Case 16 failed/ error occured" 
+        logging.error("MTU 9000 Test Case 16 failed/ error occured")
+        logging.exception(e) 
+        message="MTU 9000 Test Case 16 failed/ error occured" 
+        if(server_1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token) 
+        if(server_2_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(floating_2_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
 
     return isPassed, message
 

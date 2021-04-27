@@ -204,18 +204,18 @@ def sriov_vflag_test_case_3(baremetal_nodes_ips):
                 total_flags= vflags.count("vf")
                 output= output+ " interface {} total vflags are {} \n".format(interface,total_flags)
                 output= output+ vflags
-                if(total_flags !=16):
+                if(str(total_flags) !=vfg):
                     error= 1
         if(error==1):
-            logging.info("SRIOV vflag Testcase 3 Failed all computes nodes do not have {} vflags \n".format(vfg))
-            message= "SRIOV vflag Testcase 3 Failed all computes nodes do not have {} vflags \n".format(vfg)+output
+            logging.info("SRIOV  Testcase 3 Failed all computes nodes do not have {} vflags \n".format(vfg))
+            message= "SRIOV  Testcase 3 Failed all computes nodes do not have {} vflags \n".format(vfg)+output
         else:
-            logging.info("SRIOV vflag Testcase 3 Passed all computes nodes  have {} vflags \n".format(vfg))
-            message= "SRIOV vflag Testcase 3 Passed all computes nodes  have {} vflags \n".format(vfg)+output
-        logging.info("SRIOV Test Case 3 finished")
+            logging.info("SRIOV  Testcase 3 Passed all computes nodes  have {} vflags \n".format(vfg))
+            message= "SRIOV  Testcase 3 Passed all computes nodes  have {} vflags \n".format(vfg)+output
+        logging.info("SRIOV TestCase 3 finished")
     except Exception as e:
-        logging.exception("sriov_vflag testcase 3 failed/ error occured {}".format(e))
-        message= "sriov_vflag testcase 3 failed/ error occured {}".format(e)
+        logging.exception("SRIOV testcase 3 failed/ error occured {}".format(e))
+        message= "SRIOV testcase 3 failed/ error occured {}".format(e)
     logging.info("SRIOV Test Case e finished")
     return isPassed, message
 

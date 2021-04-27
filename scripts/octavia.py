@@ -151,11 +151,11 @@ def octavia_test_case_3_4_7_8_9_10(nova_ep, neutron_ep, image_ep, loadbal_ep, to
     isPassed3=isPassed4=isPassed7=isPassed8=isPassed9=isPassed10= False
     message3=message4=message7=message8=message9=message10=""
     #Create loadbalancer
-    loadbalancer_id= search_and_create_loadbalancer(loadbal_ep, token, "testcase_loadbalancer1", subnet_id)
+    loadbalancer_id= search_and_create_loadbalancer(loadbal_ep, token, "lb1", subnet_id)
     loadbalancer_build_wait(loadbal_ep, token, [loadbalancer_id])
     loadbalancer_state= check_loadbalancer_status(loadbal_ep, token, loadbalancer_id)
     logging.info("loadbalancer status is: "+loadbalancer_state)
-    if(loadbalancer_state=="error"):
+    if(loadbalancer_state=="ERROR"):
         mesage3=mesage4=mesage7=mesage8=mesage9=mesage10="Octavia Testcase failed, because loadbalancer is in error state"
         return isPassed3, message3, isPassed4, message4, isPassed7, message7, isPassed8, message8, isPassed9, message9, isPassed10, message10
     #create listener
@@ -177,10 +177,10 @@ def octavia_test_case_3_4_7_8_9_10(nova_ep, neutron_ep, image_ep, loadbal_ep, to
     
     flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 20)
     #put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
-    server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
-    server_2_id= search_and_create_server(nova_ep, token, "test_case_Server2", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
-    server_3_id= search_and_create_server(nova_ep, token, "test_case_Server3", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
-    server_4_id= search_and_create_server(nova_ep, token, "test_case_Server4", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
+    server_1_id= search_and_create_server(nova_ep, token, "s1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
+    server_2_id= search_and_create_server(nova_ep, token, "s2", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
+    server_3_id= search_and_create_server(nova_ep, token, "s3", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
+    server_4_id= search_and_create_server(nova_ep, token, "s4", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
     server_build_wait(nova_ep, token, [server_1_id, server_2_id, server_3_id, server_4_id])
     status1= check_server_status(nova_ep, token, server_1_id)
     status2= check_server_status(nova_ep, token, server_2_id)
@@ -1043,7 +1043,6 @@ def octavia_test_case_33(nova_ep, neutron_ep, image_ep, loadbal_ep, token, setti
         logging.exception("Testcase 33 failed, error occured {}".format(e))
         message= "Testcase 33 failed, error occured {}".format(e)
     return isPassed, message
-
     
 def octavia_test_case_34(nova_ep, neutron_ep, image_ep, loadbal_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id):
     isPassed= False

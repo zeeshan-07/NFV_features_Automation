@@ -16,7 +16,7 @@
     "external_network_name": "public",
     "external_subnet": "external_sub",
 
-    "image_name": "cirros_signed",
+    "image_name": "testcase_image",
     "image_file": "~/CentOS-7-x86_64-GenericCloud.qcow2",
     "flavor1": "testing_flavor3",
     "flavor2": "test",
@@ -27,10 +27,10 @@
     "vol_size2": "10",
     "server_1_name": "testcase_server1",
     "server2": "testcase_server2",
-
     "network_provider_type": "vlan",
     "compute0_cores":"128",
-
     "key_name": "testcase_ssh-key",
-    "key_file": "~/testcase_ssh.pem"
+    "key_file": "~/testcase_ssh.pem",
+
+    "ovsdpdk_ports": 4
 }

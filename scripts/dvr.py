@@ -1,40 +1,17 @@
 from openstack_functions import *
 import logging
 import paramiko
-from hugepages import *
 import os
-from numa import *
-from test_cases import *
 import time
-import math
-import numpy as np
 import subprocess
 from threading import Thread
 import queue
+from volume import *
 que = queue.Queue()
 
-def ssh_into_node(host_ip, command):
-    try:
-        user_name = "heat-admin"
-        logging.info("Trying to connect with node {}".format(host_ip))
-        # ins_id = conn.get_server(server_name).id
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_session = ssh_client.connect(host_ip, username="heat-admin",key_filename=os.path.expanduser("~/.ssh/id_rsa"))  # noqa
-        logging.info("SSH Session is established")
-        logging.info("Running command in a compute node")
-        stdin, stdout, stderr = ssh_client.exec_command(command)
-        logging.info("command {} successfully executed on compute node {}".format(command, host_ip))
-        output= stdout.read().decode('ascii')
-        error= stderr.read().decode('ascii')
 
-        return output, error
-    except Exception as e:
-        logging.exception(e)
-        logging.error("error ocurred when making ssh connection and running command on remote server") 
-    finally:
-        ssh_client.close()
-        logging.info("Connection from client has been closed")  
+
+ 
 def listen_tcpdump(host_ip, namespace, namespace_type):
     try:
         print("ns is: {}".format(namespace))
@@ -109,19 +86,6 @@ def listen_tcpdump(host_ip, namespace, namespace_type):
         ssh_client.close()
         logging.info("Connection from client has been closed")  
 
-def server_build_wait(nova_ep, token, server_ids):
-    while True:
-        flag=0
-
-        for server in server_ids:
-            status= check_server_status(nova_ep, token, server)
-            print(status)
-            if not (status == "active" or status=="error"):
-                logging.info("Waiting for server/s to build")
-                flag=1
-                time.sleep(10)
-        if flag==0:
-            break
 def ssh_conne(server1, server2, settings):
     try:
         command= "ping -c 50 {}".format(server2)
@@ -144,42 +108,8 @@ def ssh_conne(server1, server2, settings):
     finally:
         client.close()
         logging.info("Connection from client has been closed")  
-
-def wait_instance_boot(ip):
-    retries=0
-    while(1):
-        response = os.system("ping -c 3 " + ip)
-        if response == 0:
-            logging.info ("Ping successfull!") 
-            return True
-        logging.info("Waiting for server to boot")
-        time.sleep(30)
-        retries=retries+1
-        if(retries==10):
-            return False
-def wait_instance_ssh(ip, settings):
-    retries=0
-    ssh=False
-    while(1):
-        try:
-            client= paramiko.SSHClient()
-            paramiko.AutoAddPolicy()
-            client.load_system_host_keys()
-            client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-            result= client.connect(ip, port=22, username="centos", key_filename=os.path.expanduser(settings["key_file"]))
-            print("Result is : ".format(result))
-            ssh=True
-            break
-        except:    
-            pass
-            logging.info("Waiting for server to ssh")
-            time.sleep(30)
-        retries=retries+1
-        if(retries==10):
-            break
-    return ssh
-        
-def dvr_test_case_1(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):
+  
+def dvr_test_case_1(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id, flavor_id):
     compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
     compute1= compute1[0]
     compute1_ip =  [val for key, val in baremetal_node_ips.items() if "compute-1" in key]
@@ -190,8 +120,6 @@ def dvr_test_case_1(nova_ep, neutron_ep, image_ep, token, settings, baremetal_no
     oldspaces= oldspaces.split('\n')
     print("length is {}".format(len(oldspaces)))
     print(oldspaces)
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 28, 60)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
     server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id, compute1)
     server_2_id= search_and_create_server(nova_ep, token, "test_case_Server2", image_id,settings["key_name"], flavor_id,  network_id, security_group_id, compute1)
 
@@ -240,6 +168,7 @@ def dvr_test_case_7(baremetal_nodes_ips):
             return True, message
     except Exception as e:
         logging.error("DVR Test case 7 failed/ error occured")
+        message= message+ "DVR Test case 7 failed/ error occured"
         logging.exception(e)
         return False, message
 def dvr_test_case_8(baremetal_nodes_ips):
@@ -265,11 +194,11 @@ def dvr_test_case_8(baremetal_nodes_ips):
             return True, message
     except Exception as e:
         logging.error("DVR Test case 8 failed/ error occured")
+        message= message+ " DVR Test case 8 failed/ error occured"
         logging.exception(e)
         return False, message
 
-
-def dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, network2_id, subnet2_id, router_id, security_group_id, image_id):
+def dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, network2_id, subnet2_id, router_id, security_group_id, image_id, flavor_id):
     logging.info("DVR testcase 12 started")
     controller0_ip=  [val for key, val in baremetal_node_ips.items() if "controller-0" in key]
     controller0_ip= controller0_ip[0]
@@ -278,16 +207,15 @@ def dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
     compute0= compute0[0]
     isPassed= False
-    message=server_1_id=server_2_id=flavor_id=floating_1_ip_id=floating_2_ip_id=""
+    message=server_1_id=server_2_id=floating_1_ip_id=floating_2_ip_id=""
     try:
-        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+        
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id, compute0)
         server_2_id= search_and_create_server(nova_ep, token, "test_case_Server2", image_id,settings["key_name"], flavor_id,  network2_id, security_group_id, compute1)
         server_build_wait(nova_ep, token, [server_1_id, server_2_id])
         status1= check_server_status(nova_ep, token, server_1_id) 
         status2= check_server_status(nova_ep, token, server_2_id)
-        if status1== "active" and status1== "active":
+        if status1== "active" and status2== "active":
             public_network_id= search_network(neutron_ep, token, "public")
             public_subnet_id= search_subnet(neutron_ep, token, "external_sub")
             server1_ip= get_server_ip(nova_ep, token, server_1_id, settings["network1_name"])
@@ -335,43 +263,38 @@ def dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                 logging.error("DVR testcase 10 failed, failed to ssh and ping server/s floating ip")
         else:
             logging.error("DVR testcase 10 failed, one of server creation failed")
-            message="DVR testcase 10 failed, one of server creation failed, server 1 status is {} server 2 status is {}".format(status1)
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
-        logging.info("deleting port")
-        time.sleep(10)
-        logging.info("releasing ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-        time.sleep(2)        
-    except Exception as e:
-        logging.exception(e)
-        message="DVR testcase 10 failed/ error occured: {}".format(e)
-        if flavor_id != "":
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+            message="DVR testcase 10 failed, one of server creation failed, server 1 status is {} server 2 status is {}".format(status1, status2)
+
         if server_1_id != "":
             logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         if server_2_id != "":
             logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
-        time.sleep(10)
         if floating_1_ip_id != "":
             delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
         if floating_2_ip_id != "":
             delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
-        time.sleep(2)
+    except Exception as e:
+        logging.exception(e)
+        message= message+ "DVR testcase 10 failed/ error occured: {}".format(e)
+        if server_1_id != "":
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
+        if server_2_id != "":
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
+        if floating_1_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if floating_2_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
     logging.info("DVR testcase 10 finished")
     return isPassed, message
 
-def dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id):
+def dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id, flavor_id):
     logging.info("DVR testcase 11 started")
     isPassed= False
-    message=server_1_id=server_2_id=flavor_id=floating_1_ip_id=floating_2_ip_id=""
+    message=server_1_id=server_2_id=floating_1_ip_id=floating_2_ip_id=""
     controller_nodes_ip= [val for key, val in baremetal_node_ips.items() if "controller" in key]
     command= "sudo ip netns"
     node_selected=""
@@ -388,8 +311,7 @@ def dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
         node_selected= controller_nodes_ip[1]
         if node_selected != "":
             logging.info("host selected for instance creation is {}".format(node_selected))
-            flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-            put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+           
             server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
             server_build_wait(nova_ep, token, [server_1_id])
             status1= check_server_status(nova_ep, token, server_1_id) 
@@ -442,22 +364,17 @@ def dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                     logging.error("DVR testcase 11 failed, failed to ssh and ping server/s floating ip")
             else:
                 logging.error("DVR testcase 11 failed, one of server creation failed")
-                message="DVR testcase 11 failed, one of server creation failed, server 1 status is {} server 2 status is {}".format(status1)
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-            logging.info("deleting all servers")
+                message="DVR testcase 11 failed, one of server creation failed, server 1 status is {}".format(status1)
+            
+        if server_1_id != "":
+            logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-            logging.info("deleting port")
-            time.sleep(10)
-            logging.info("releasing ip")
-            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-            time.sleep(2)        
+        time.sleep(10)
+        if floating_1_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)        
     except Exception as e:
         logging.exception(e)
-        message="DVR testcase 12 failed/ error occured: {}".format(e)
-        if flavor_id != "":
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        message= message+ " DVR testcase 11 failed/ error occured: {}".format(e)
         if server_1_id != "":
             logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
@@ -468,15 +385,13 @@ def dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     logging.info("DVR testcase 11 finished")
     return isPassed, message
 
-def dvr_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id):
+def dvr_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id, flavor_id):
     logging.info("DVR testcase 12 started")
     controller0_ip=  [val for key, val in baremetal_node_ips.items() if "controller-0" in key]
     controller0_ip= controller0_ip[0]
     isPassed= False
-    message=server_1_id=server_2_id=flavor_id=floating_1_ip_id=floating_2_ip_id=""
+    message=server_1_id=server_2_id=floating_1_ip_id=floating_2_ip_id=""
     try:
-        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id)
         server_build_wait(nova_ep, token, [server_1_id])
         status1= check_server_status(nova_ep, token, server_1_id) 
@@ -523,32 +438,24 @@ def dvr_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                 logging.error("DVR testcase 12 failed, failed to ssh and ping server/s floating ip")
         else:
             logging.error("DVR testcase 12 failed, one of server creation failed")
-            message="DVR testcase 12 failed, one of server creation failed, server 1 status is {} server 2 status is {}".format(status1)
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        logging.info("deleting port")
-        time.sleep(10)
-        logging.info("releasing ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        time.sleep(2)        
-    except Exception as e:
-        logging.exception(e)
-        message="DVR testcase 12 failed/ error occured: {}".format(e)
-        if flavor_id != "":
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+            message="DVR testcase 12 failed, one of server creation failed, server 1 status is {} ".format(status1)
         if server_1_id != "":
             logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         time.sleep(10)
         if floating_1_ip_id != "":
             delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        time.sleep(2)
+        time.sleep(2)      
+    except Exception as e:
+        logging.exception(e)
+        message= message+" DVR testcase 12 failed/ error occured: {}".format(e)
+        if server_1_id != "":
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
+        if floating_1_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
     logging.info("DVR testcase 12 finished")
     return isPassed, message
-
 def dvr_test_case_13(baremetal_nodes_ips):
     message=""
     command= "sudo cat /var/lib/config-data/puppet-generated/neutron/etc/neutron/neutron.conf |grep l3_ha"
@@ -561,7 +468,7 @@ def dvr_test_case_13(baremetal_nodes_ips):
 
             logging.info("l3_ha of controller node {}, is {}".format(node, ssh_output))
             message= message+ " l3_ha of controller node {}, is {}".format(node, ssh_output)
-            if ssh_output.strip() != "l3_ha=False":
+            if ssh_output != "l3_ha=False":
                 logging.error("Controller node {} do not have l3_ha false".format(node))
                 logging.error("DVR Testcase 13 failed")
                 message= message+" DVR testcase 13 failed"
@@ -570,13 +477,15 @@ def dvr_test_case_13(baremetal_nodes_ips):
         else:
             logging.info("All controller nodes have l3_ha false,")
             logging.info("DVR Testcase 13 Passed")
+            message= "All controller nodes have l3_ha false "+message
             return True, message
     except Exception as e:
         logging.error("DVR Test case 13 failed/ error occurred")
+        message=  "DVR Test case 13 failed/ error occurred " + message
         logging.exception(e)
         return False, message
 
-def dvr_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id):
+def dvr_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id, flavor_id):
     logging.info("DVR testcase 16 started")
     compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
     compute1= compute1[0]
@@ -585,10 +494,8 @@ def dvr_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     compute0_ip =  [val for key, val in baremetal_node_ips.items() if "compute-0" in key]
     compute0_ip= compute0_ip[0]
     isPassed= False
-    message=server_1_id=server_2_id=flavor_id=floating_1_ip_id=floating_2_ip_id=""
+    message=server_1_id=server_2_id=floating_1_ip_id=floating_2_ip_id=""
     try:
-        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id, compute0)
         server_build_wait(nova_ep, token, [server_1_id])
         status1= check_server_status(nova_ep, token, server_1_id) 
@@ -635,29 +542,21 @@ def dvr_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                 logging.error("DVR testcase 16 failed, failed to ssh and ping server/s floating ip")
         else:
             logging.error("DVR testcase 16 failed, one of server creation failed")
-            message="DVR testcase 16 failed, one of server creation failed, server 1 status is {} server 2 status is {}".format(status1)
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        logging.info("deleting port")
-        time.sleep(10)
-        logging.info("releasing ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        time.sleep(2)        
-    except Exception as e:
-        logging.exception(e)
-        message="DVR testcase 16 failed/ error occured: {}".format(e)
-        if flavor_id != "":
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+            message="DVR testcase 16 failed, one of server creation failed, server 1 status is {}".format(status1)
         if server_1_id != "":
             logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         time.sleep(10)
         if floating_1_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)     
+    except Exception as e:
+        logging.exception(e)
+        message= message+ "DVR testcase 16 failed/ error occured: {}".format(e)
+        if server_1_id != "":
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
+        if floating_1_ip_id != "":
             delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        time.sleep(2)
     logging.info("DVR testcase 16 finished")
     return isPassed, message
 def dvr_test_case_17(neutron_ep, token):
@@ -675,7 +574,7 @@ def dvr_test_case_17(neutron_ep, token):
         message= "DVR Testcase 17 passed, all nodes do not have neutron metadata agent, expected nodes 6, received {}".format(total_agents)
     return isPassed, message
 
-def dvr_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, network2_id, subnet2_id, router_id, security_group_id, image_id):
+def dvr_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, network2_id, subnet2_id, router_id, security_group_id, image_id, flavor_id):
     logging.info("DVR testcase 19 started")
     compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
     compute1= compute1[0]
@@ -684,10 +583,8 @@ def dvr_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     compute0_ip =  [val for key, val in baremetal_node_ips.items() if "compute-0" in key]
     compute0_ip= compute0_ip[0]
     isPassed= False
-    message=server_1_id=server_2_id=flavor_id=floating_1_ip_id=floating_2_ip_id=""
+    message=server_1_id=server_2_id=floating_1_ip_id=floating_2_ip_id=""
     try:
-        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
         server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id, compute0)
         server_2_id= search_and_create_server(nova_ep, token, "test_case_Server2", image_id,settings["key_name"], flavor_id,  network2_id, security_group_id, compute1)
         server_build_wait(nova_ep, token, [server_1_id, server_2_id])
@@ -748,23 +645,22 @@ def dvr_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
         else:
             logging.error("DVR testcase 19 failed, one of server creation failed")
             message="DVR testcase 19 failed, one of server creation failed, server 1 status is {} server 2 status is {}".format(status1, status2)
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
-        logging.info("deleting port")
+        if server_1_id != "":
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
+        if server_2_id != "":
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_2_id), token)
         time.sleep(10)
-        logging.info("releasing ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
+        if floating_1_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if floating_2_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_2_ip_id), token)
         time.sleep(2)    
     except Exception as e:
         logging.exception(e)
-        message="DVR testcase 19 failed/ error occured: {}".format(e)
-        if flavor_id != "":
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        message= message+ " DVR testcase 19 failed/ error occured: {}".format(e)
+      
         if server_1_id != "":
             logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
@@ -779,9 +675,9 @@ def dvr_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
         time.sleep(2)
     logging.info("DVR testcase 19 finished")
     return isPassed, message
-def dvr_test_case_14_15_23(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id):
+def dvr_test_case_14_15_23(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, router_id, security_group_id, image_id, flavor_id):
     isPassed14=isPassed15=isPassed23= False
-    message14=message15=message23=server_1_id=server_2_id=flavor_id=floating_1_ip_id=floating_2_ip_id=""
+    message14=message15=message23=server_1_id=server_2_id=floating_1_ip_id=floating_2_ip_id=""
     logging.info("DVR testcase 14 15 23 started")
     compute_nodes_ip= [val for key, val in baremetal_node_ips.items() if "compute" in key]
     command= "sudo ip netns"
@@ -800,8 +696,7 @@ def dvr_test_case_14_15_23(nova_ep, neutron_ep, image_ep, token, settings, barem
             compute_nodes_name= [key for key, val in baremetal_node_ips.items() if node_selected in val]
             compute_nodes_name=compute_nodes_name[0]
             logging.info("host selected for instance creation is {}".format(compute_nodes_name))
-            flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-            put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+           
             server_1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id,  network_id, security_group_id, compute_nodes_name)
             server_build_wait(nova_ep, token, [server_1_id])
             status1= check_server_status(nova_ep, token, server_1_id) 
@@ -851,47 +746,41 @@ def dvr_test_case_14_15_23(nova_ep, neutron_ep, image_ep, token, settings, barem
                     logging.error("DVR testcase 14,15,23 failed, failed to ssh and ping server/s floating ip")
             else:
                 logging.error("DVR testcase 14,15,23 failed, one of server creation failed")
-                message14="DVR testcase 14 failed, one of server creation failed, server 1 status is {} server 1 status is {}".format(status1)
-                message15="DVR testcase 15 failed, one of server creation failed, server 1 status is {} server 1 status is {}".format(status1)
-                message23="DVR testcase 23 failed, one of server creation failed, server 1 status is {} server 1 status is {}".format(status1)
-                logging.info("deleting flavor")
-                delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-                logging.info("deleting port")
-                time.sleep(10)
-                logging.info("releasing ip")
-                delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-                time.sleep(2)
-    except Exception as e:
-        logging.exception(e)
-        message14="DVR testcase 14 failed/ error occured: {}".format(e)
-        message15="DVR testcase 15 failed/ error occured: {}".format(e)
-        message23="DVR testcase 23 failed/ error occured: {}".format(e)
-        if flavor_id != "":
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+                message14="DVR testcase 14 failed, one of server creation failed, server 1 status is {}".format(status1)
+                message15="DVR testcase 15 failed, one of server creation failed, server 1 status is {}".format(status1)
+                message23="DVR testcase 23 failed, one of server creation failed, server 1 status is {}".format(status1)
         if server_1_id != "":
             logging.info("deleting server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
         time.sleep(10)
         if floating_1_ip_id != "":
             delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
-        time.sleep(2)
+    except Exception as e:
+        logging.exception(e)
+        message14= message14+ " DVR testcase 14 failed/ error occured: {}".format(e)
+        message15= message15+" DVR testcase 15 failed/ error occured: {}".format(e)
+        message23= message23+" DVR testcase 23 failed/ error occured: {}".format(e)
+        if server_1_id != "":
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_1_id), token)
+        time.sleep(10)
+        if floating_1_ip_id != "":
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
     logging.info("DVR testcase 14,15,23 finished")
    
     return isPassed14, message14, isPassed15, message15, isPassed23, message23
 
-def dvr_test_case_31(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+def dvr_test_case_31(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id, flavor_id):  
     logging.info("DVR Test Case 31 running")
     isPassed= False
     message=""
-    server1_id=flavor_id=server_floating_ip_id=server2_floating_ip_id=""
+    server1_id=server_floating_ip_id=server2_floating_ip_id=""
     compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
     compute1= compute1[0]
     compute2 =  [key for key, val in baremetal_node_ips.items() if "compute-2" in key]
     compute2= compute2[0]
     try:
-        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+       
         #search and create server
         server1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id, settings["key_name"], flavor_id,  network_id, security_group_id, compute1)
         server_build_wait(nova_ep, token, [server1_id])
@@ -931,22 +820,17 @@ def dvr_test_case_31(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
             else:
                 logging.error("live migration of instance failed, status code is {},  old host name is {}, new host name is : {}".format(response, compute1, new_host))
                 message="live migration of instance failed, status code is {},  old host name is {}, new host name is : {}".format(response, compute1, new_host)
-        
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
-        time.sleep(10)
-        logging.info("releasing floating ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
+        if(server_floating_ip_id ==""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)
     except Exception as e:
         logging.exception("DVR test Case 31 failed/ error occured")
-        message="DVR testcase 31 failed/ error occured {}".format(e)
+        message= message+" DVR testcase 31 failed/ error occured {}".format(e)
         logging.exception(e)
         logging.error(e)
-        if(flavor_id != ""):
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
         if(server1_id != ""):
             logging.info("deleting all servers")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
@@ -956,16 +840,14 @@ def dvr_test_case_31(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
     logging.info("DVR Test Case 31 finished")
     return isPassed, message
 
-def dvr_test_case_32(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):  
+def dvr_test_case_32(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id, flavor_id):  
     logging.info("HCI Test Case 32 running")
     isPassed= False
     message=""
-    server1_id=flavor_id=server_floating_ip_id=server2_floating_ip_id=""
+    server1_id=server_floating_ip_id=server2_floating_ip_id=""
     compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
     compute1= compute1[0]
     try:
-        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 60)
-        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
         #search and create server
         server1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id, settings["key_name"], flavor_id,  network_id, security_group_id, compute1)
         server_build_wait(nova_ep, token, [server1_id])
@@ -1010,22 +892,18 @@ def dvr_test_case_32(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
                 logging.error("cold vmigration of instance failed, status code is {}, old host name is {}, new host name is : {}".format(response, compute1, new_host))
                 message="cold migration of instance failed, status code is {},  old host name is {}, new host name is : {}".format(response, compute1, new_host)
         
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting all servers")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
-        time.sleep(10)
-        logging.info("releasing floating ip")
-        delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)
- 
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
+        if(server_floating_ip_id ==""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)            
     except Exception as e:
         logging.exception("DVR test Case 32 failed/ error occured")
-        message="DVR testcase 32 failed/ error occured {}".format(e)
+        message= metadata+" DVR testcase 32 failed/ error occured {}".format(e)
         logging.exception(e)
         logging.error(e)
-        if(flavor_id != ""):
-            logging.info("deleting flavor")
-            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        
         if(server1_id != ""):
             logging.info("deleting all servers")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token)
@@ -1034,6 +912,20 @@ def dvr_test_case_32(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
             delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, server_floating_ip_id), token)    
     logging.info("DVR Test Case 32 finished")
     return isPassed, message
+
+def dvr_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_node_ips):
+    logging.info("starting volume testcases")
+    server1_id= "6faa117e-9349-4303-a31f-29663f916409"
+    server2_id= "299182c3-bb2c-4bbf-af84-4e4ae6602b4e"
+    floating_ip= "100.67.62.98"
+    message, message2= volume_test_cases(cinder_ep, keystone_ep, nova_ep, token, settings, baremetal_node_ips, server1_id, server2_id, floating_ip)
+    print(message)
+    print(message2)
+
+
+
+
+
 
 
 

@@ -29,7 +29,7 @@ def send_post_request(api_url, token, payload, header='application/json'):
 def send_delete_request(api_url, token, header='application/json' ):
     try:
         requests.delete(api_url, headers= {'content-type':header, 'X-Auth-Token': token})
-        time.sleep(20)
+        time.sleep(5)
     except Exception as e:
        logging.error( "request processing failure ", stack_info=True)
        logging.exception(e)
@@ -241,6 +241,7 @@ def create_router(neutron_ep, token, router_name, network_id, subnet_id):
 
     }
     response= send_post_request('{}/v2.0/routers'.format(neutron_ep), token, payload)
+    print(response.text)
     logging.info("successfully created router {}".format(router_name)) if response.ok else response.raise_for_status()  
     data= response.json()
     return data['router']['id']
@@ -258,7 +259,14 @@ def add_interface_to_router(neutron_ep, token, router_id, subnet_id):
     response= send_put_request('{}/v2.0/routers/{}/add_router_interface'.format(neutron_ep,router_id), token, payload)
     print(response.text)
     logging.info("successfully added interface to router {}".format(router_id)) if response.ok else response.raise_for_status()  
-  
+def get_default_security_group_id(neutron_ep, token, project_id):
+    response= send_get_request("{}/v2.0/security-groups".format(neutron_ep), token)
+    logging.info("successfully received security group list") if response.ok else response.raise_for_status()
+    data= response.json()
+    for res in (data["security_groups"]):
+        if(res["name"]== "default" and res["tenant_id"]== project_id):
+            return res["id"]
+            break
 def search_security_group(neutron_ep, token, security_group_name):
     response= send_get_request("{}/v2.0/security-groups".format(neutron_ep), token)
     logging.info("successfully received security group list") if response.ok else response.raise_for_status()
@@ -378,7 +386,7 @@ def upload_file_to_image(image_ep, token, image_file, image_id):
     except Exception as e:
         logging.error( "request processing failure ", stack_info=True)
         print(e)
-    logging.info("successfully uploaded to image") if response.ok else response.raise_for_status()
+    logging.info("successfully uploaded file to image") if response.ok else response.raise_for_status()
 def search_and_create_image(image_ep, token, image_name, container_format, disk_format, image_visibility, image_file_path):
     image_id= search_image(image_ep, token, image_name)
     if image_id is None:
@@ -501,14 +509,28 @@ def resize_server(nova_ep,token, server_id, flavor_id):
     response= send_post_request("{}/v2.1/servers/{}/action".format(nova_ep, server_id), token, payload)
     print(response.text)
     return response.status_code
+def reboot_server(nova_ep,token, server_id):
+    payload={
+    "reboot" : {
+        "type" : "HARD"
+         }
+    }
+    response=send_post_request("{}/v2.1/servers/{}/action".format(nova_ep, server_id), token, payload)
+    logging.info(response.text)
+    return response.status_code
 
 def live_migrate_server(nova_ep,token, server_id, host=None):
     payload= {
         "os-migrateLive": {
             "block_migration": "auto",
-            "host": host
+            #"host": host
         }
         }
+    payload2= {
+        "host": host
+    }
+    if host is not None:
+        payload= {"os-migrateLive":{**payload["os-migrateLive"], **payload2}}
     response=send_post_request("{}/v2.1/servers/{}/action".format(nova_ep, server_id), token, payload)
     logging.info(response.text)
     return response.status_code
@@ -520,14 +542,14 @@ def search_and_create_server(nova_ep, token, server_name, image_id, key_name, fl
         server_url= create_server(nova_ep, token, server_name, image_id, key_name, flavor_id,  network_id, security_group_id, host, availability_zone)
         time.sleep(5)
         server_id= get_server_detail(token, server_url)
-    logging.debug("Server 1 id: "+server_id)    
+    logging.debug("Server id: "+server_id)    
     return server_id
 def search_and_create_sriov_server(nova_ep, token, server_name, image_id, key_name, flavor_id,  port_id, availability_zone, security_group_id, host=None):
     server_id= search_server(nova_ep, token, server_name)
     if server_id is None:
         server_url= create_sriov_server(nova_ep, token, server_name, image_id, key_name, flavor_id, port_id, availability_zone, security_group_id, host)
         server_id= get_server_detail(token, server_url)
-    logging.debug("Server id: "+server_id)    
+    logging.debug("Server id: "+server_id)  
     return server_id
 
 '''
@@ -641,12 +663,15 @@ def get_compute_host_list(nova_ep, token):
 def set_quota(nova_ep, token, project_id, vcpus, instances, ram):
     payload= {"quota_set": {
         "instances": instances,
-        "vcpus": vcpus,
+        "cores": vcpus,
         "ram": ram
         }}
-    response= send_post_request("{}/v2.1/os-quota-sets/{}".format(nova_ep, project_id), token, payload)
-    logging.info("successfully received host list") if response.ok else response.raise_for_status()
-    print(response.text)
+    #data=json.dumps(payload)
+    response= requests.put("{}/v2.1/os-quota-sets/{}".format(nova_ep, project_id),  headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    #response= send_post_request("{}/v2.1/os-quota-sets/{}".format(nova_ep, project_id), token, payload)
+    #print(response.text)
+    logging.info("successfully updated quota") if response.ok else response.raise_for_status()
+    
 def get_availability_zones(nova_ep, token):
     response= send_get_request("{}/v2.1/os-aggregates".format(nova_ep), token)
     logging.info("successfully received availibility zones list") if response.ok else response.raise_for_status()
@@ -698,6 +723,7 @@ def create_loadbalancer(loadbal_ep, token, loadbalancer_name, subnet_id):
         }
 
     response= send_post_request('{}/v2.0/lbaas/loadbalancers'.format(loadbal_ep), token, payload)
+    print(response.text)
     logging.info("successfully created loadbalancer {}".format(loadbalancer_name)) if response.ok else response.raise_for_status()
     data=response.json()
     return data['loadbalancer']['id']
@@ -920,7 +946,7 @@ def create_l7policy(loadbal_ep, token, policy_name, listener_id):
     print(response.text)
     logging.info("successfully created l7policy {}".format(policy_name)) if response.ok else response.raise_for_status()
 
-def create_l7policy(loadbal_ep, token, policy_id):
+def create_l7policy(loadbal_cdep, token, policy_id):
     #create loadbalancer
     payload= {
         "rule": {
@@ -966,6 +992,23 @@ def create_barbican_image(nova_ep, token, image_name, container_format, disk_for
     logging.info("successfully created image {}".format(image_name)) if response.ok else response.raise_for_status()
     data= response.json()
     return data["id"]
+def create_secret(barbican_ep, token):
+    payload= {"name": "testSecret", "algorithm": "aes", "mode": "cbc", "bit_length": 256, "secret_type": "opaque", 
+                "payload": "Test_Case Payload", 
+                "payload_content_type": "text/plain"}
+
+    response= send_post_request("{}/v1/secrets/".format(barbican_ep), token, payload)
+    key_id= str(response.text)
+    key_id= key_id.split("/")
+    key_id= key_id[-1]
+    key_id= key_id.strip('"}')
+    print("Key is: "+key_id)
+    logging.info("successfully add secret to barbican") if response.ok else response.raise_for_status()
+    return key_id
+def get_secret(barbican_ep, token, secret_id):
+    response= send_get_request("{}/v1/secrets/{}/payload".format(barbican_ep,secret_id), token)
+    return response.text
+
 
 #
 #Server Functions
@@ -988,14 +1031,12 @@ def wait_instance_boot(ip):
     while(1):
         response = os.system("ping -c 3 " + ip)
         if response == 0:
-            logging.info ("Ping successfull!")
-            break 
+            logging.info ("Ping successfull!") 
             return True
         logging.info("Waiting for server to boot")
         time.sleep(30)
         retries=retries+1
-        if(retries==4):
-            break
+        if(retries==5):
             return False
 def wait_instance_ssh(ip, settings):
     try:
@@ -1004,6 +1045,7 @@ def wait_instance_ssh(ip, settings):
     except:
         pass
     retries=0
+    ssh=False
     while(1):
         try:
             client= paramiko.SSHClient()
@@ -1011,6 +1053,7 @@ def wait_instance_ssh(ip, settings):
             client.load_system_host_keys()
             client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
             client.connect(ip, port=22, username="centos", key_filename=os.path.expanduser(settings["key_file"]))
+            ssh= True
             break
         except Exception as e:
             print(e)
@@ -1020,8 +1063,8 @@ def wait_instance_ssh(ip, settings):
         retries=retries+1
         if(retries==4):
             break
-
-def instance_ssh(server1, server2, settings, command):
+    return ssh
+def instance_ssh(server1, settings, command):
     try:
         remove_key= "ssh-keygen -R {}".format(server1)
         os.system(remove_key)
@@ -1036,7 +1079,7 @@ def instance_ssh(server1, server2, settings, command):
         logging.info("SSH Session is established")
         logging.info("Running command in a compute node")
         stdin, stdout, stderr = client.exec_command(command)
-        logging.info("command {} successfully executed on compute node {}".format(command, server2))
+        logging.info("command {} successfully executed on instance")
         output= stdout.read().decode('ascii')
         error= stderr.read().decode('ascii')
         return output, error
@@ -1046,5 +1089,25 @@ def instance_ssh(server1, server2, settings, command):
     finally:
         client.close()
         logging.info("Connection from client has been closed")  
-
+def ssh_into_node(host_ip, command):
+    try:
+        user_name = "heat-admin"
+        logging.info("Trying to connect with node {}".format(host_ip))
+        # ins_id = conn.get_server(server_name).id
+        ssh_client = paramiko.SSHClient()
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh_session = ssh_client.connect(host_ip, username="heat-admin", key_filename=os.path.expanduser("~/.ssh/id_rsa"))  # noqa
+        logging.info("SSH Session is established")
+        logging.info("Running command in a compute node")
+        stdin, stdout, stderr = ssh_client.exec_command(command)
+        logging.info("command {} successfully executed on node {}".format(command, host_ip))
+        output= stdout.read().decode('ascii')
+        error= stderr.read().decode('ascii')
+        return output, error
+    except Exception as e:
+        logging.exception(e)
+        logging.error("error ocurred when making ssh connection and running command on remote server") 
+    finally:
+        ssh_client.close()
+        logging.info("Connection from client has been closed") 
     

@@ -1,63 +1,24 @@
 from openstack_functions import *
 import logging
-import paramiko
-from hugepages import *
-import os
-from hugepages import*
 import math
-
-def wait_instance_boot(ip):
-    retries=0
-    while(1):
-        response = os.system("ping -c 3 " + ip)
-        if response == 0:
-            logging.info ("Ping successfull!")
-            break 
-            return True
-        logging.info("Waiting for server to boot")
-        time.sleep(30)
-        retries=retries+1
-        if(retries==10):
-            break
-            return False
 
 def parse_vcpus(output): 
     output= output.split('>')
     return output[1][0]
 
-def ssh_into_node(host_ip, command):
-    try:
-        user_name = "heat-admin"
-        logging.info("Trying to connect with node {}".format(host_ip))
-        # ins_id = conn.get_server(server_name).id
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh_session = ssh_client.connect(host_ip, username="heat-admin", key_filename=os.path.expanduser("~/.ssh/id_rsa"))  # noqa
-        logging.info("SSH Session is established")
-        logging.info("Running command in a compute node")
-        stdin, stdout, stderr = ssh_client.exec_command(command)
-        logging.info("command {} successfully executed on compute node {}".format(command, host_ip))
-        output= stdout.read().decode('ascii')
-        return output
-    except Exception as e:
-        logging.exception(e)
-        logging.error("error ocurred when making ssh connection and running command on remote server") 
-    finally:
-        ssh_client.close()
-        logging.info("Connection from client has been closed")  
-
 
 def numa_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):
     logging.info("Test Case 3 running")
     isPassed= False
-    message=""
-    compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
-    compute0= compute0[0]
-    compute0_ip =  [val for key, val in baremetal_node_ips.items() if "compute-0" in key]
-    compute0_ip= compute0_ip[0]
+    message=flavor_id=server_id=""
+    
     try:
+        compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
+        compute0= compute0[0]
+        compute0_ip =  [val for key, val in baremetal_node_ips.items() if "compute-0" in key]
+        compute0_ip= compute0_ip[0]
         # Search and Create Flavor
-        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 4, 10)
+        flavor_id= search_and_create_flavor(nova_ep, token, "numa_flavor", 4096, 4, 10)
         put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
         #search and create server
         server_id= search_and_create_server(nova_ep, token, settings["server_1_name"], image_id,settings["key_name"], flavor_id,  network_id, security_group_id, compute0, None)
@@ -82,16 +43,23 @@ def numa_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
             logging.error("Server creation failed")
             logging.error("Numa Test Case 3 Failed")
             message="numa testcase 3 failed because server is in not created, its status is: {}".format(status)
-        logging.info("deleting flavor")
-        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
-        logging.info("deleting server")
-        delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
-        time.sleep(10)
+        if(flavor_id != ""):
+            logging.info("deleting flavor")
+            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        if(server_id != ""):
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
     except Exception as e:
         logging.error("Test Case 15 failed")
         message="numa testcase 3 failed/ error occured"
         logging.exception(e)
-        pass
+        if(flavor_id != ""):
+            logging.info("deleting flavor")
+            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+        if(server_id != ""):
+            logging.info("deleting server")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
+        
     return isPassed, message
     
 def numa_test_case_5(nova_ep, neutron_ep, image_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):

@@ -4,6 +4,7 @@ import paramiko
 import time
 import math
 import subprocess
+from volume import *
 def wait_server_pause(nova_ep, token, server_ids):
     while True:
         flag=0
@@ -39,7 +40,6 @@ def wait_server_shutdown(nova_ep, token, server_ids):
                 time.sleep(5)
         if flag==0:
             break
-
 def wait_server_delete(nova_ep, token, server_names):
     while True:
         flag=0
@@ -51,14 +51,12 @@ def wait_server_delete(nova_ep, token, server_names):
                 time.sleep(5)
         if flag==0:
             break
-
 def parse_hugepage_size(huge_page_info, parameter):
     huge_page_info= huge_page_info.split('\n')
     for property in huge_page_info:
         line= property.split()
         if line[0] == parameter:
            return line[1]
-
 def read_instance_xml(ssh_output):
     return huge_page_size, huge_page_consumption
 
@@ -290,7 +288,6 @@ def hugepages_test_case_7_and_8(nova_ep, neutron_ep, glance_ep, token, settings,
                 logging.info("deleting all servers")
                 for server_id in server_ids:   
                     delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
-                time.sleep(20)
                 pass
                 return False, message7, False, message8
             server_build_wait(nova_ep, token, [server_id])
@@ -361,7 +358,7 @@ def hugepages_test_case_7_and_8(nova_ep, neutron_ep, glance_ep, token, settings,
             logging.info("Server Creation Failed when other servers shutdown")
             logging.info("Test case 8 passed when other servers are shutdown")
             isPassed8_3=True
-        if isPassed8_1== True and isPassed8_1== True and isPassed8_3== True:
+        if isPassed8_1== True and isPassed8_2== True and isPassed8_3== True:
             isPassed8= True
             message8="Instance creation failed when all hugepages are consumed, when all hosts are suspended, paused or shutdown"
         try:
@@ -372,7 +369,6 @@ def hugepages_test_case_7_and_8(nova_ep, neutron_ep, glance_ep, token, settings,
                 delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
             for server_id in server_ids: 
                 delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
-            time.sleep(20)
         except: 
             pass
     except Exception as e:
@@ -469,7 +465,6 @@ def hugepages_test_case_10(nova_ep, neutron_ep, glance_ep, token, settings, bare
         logging.info("deleting all servers")
         for server_id in server_ids:   
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
-        time.sleep(20)
     except Exception as e:
         logging.error("Hugepage Test case 10 failed/ error occured")
         logging.exception(e)
@@ -478,7 +473,6 @@ def hugepages_test_case_10(nova_ep, neutron_ep, glance_ep, token, settings, bare
         logging.info("deleting all servers")
         for server_id in server_ids:   
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
-        time.sleep(20)
     return isPassed, message
 
 def hugepages_test_case_11(nova_ep, neutron_ep, glance_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):
@@ -496,10 +490,9 @@ def hugepages_test_case_11(nova_ep, neutron_ep, glance_ep, token, settings, bare
         logging.info("Server 1 Port is: {}".format(server_port))
         public_network_id= search_network(neutron_ep, token, "public")
         public_subnet_id= search_subnet(neutron_ep, token, "external_sub")
-        time.sleep(90)
         create_floating_ip(neutron_ep, token, public_network_id, public_subnet_id, server_ip, server_port)
+        time.sleep(10)
         logging.info("Waiting for server to boot")
-        time.sleep(90)
         server_floating_ip= get_server_floating_ip(nova_ep, token, server_id, settings["network1_name"])
         response = os.system("ping -c 3 " + server_floating_ip)
         if response == 0:
@@ -537,7 +530,6 @@ def hugepages_test_case_11(nova_ep, neutron_ep, glance_ep, token, settings, bare
     
     return isPassed, message
 
-
 def hugepages_test_case_12(nova_ep, neutron_ep, glance_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):
     isPassed=False
     message=""  
@@ -552,7 +544,7 @@ def hugepages_test_case_12(nova_ep, neutron_ep, glance_ep, token, settings, bare
         server_build_wait(nova_ep, token, [server_1_id])
         status1= check_server_status(nova_ep, token, server_1_id)
         if  status1 == "error":
-            logging.error("Test Case 9 failed")
+            logging.error("Test Case 12 failed")
             logging.error("Instances creation failed")
             message="one of the instance creation failed, insatnce 1 status is {}".format(status1)
         else:
@@ -561,17 +553,19 @@ def hugepages_test_case_12(nova_ep, neutron_ep, glance_ep, token, settings, bare
             public_network_id= search_network(neutron_ep, token, "public")
             public_subnet_id= search_subnet(neutron_ep, token, "external_sub")
             server_floating_ip, server_floating_ip_id= create_floating_ip(neutron_ep, token, public_network_id, public_subnet_id, server_1_ip, server_1_port)
+
             logging.info("Waiting for server to boot")
             wait_instance_boot(server_floating_ip)
             logging.info("cold migrating server")
             response=  perform_action_on_server(nova_ep,token, server_1_id, "migrate")
-            time.sleep(20)
+            time.sleep(30)
             if response==202:
                 logging.info("confirming migration")
                 perform_action_on_server(nova_ep,token, server_1_id, "confirmResize")
 
             logging.info("migration status code is: {}".format(response))
             logging.info("waiting for migration")
+            time.sleep(30)
             wait_instance_boot(server_floating_ip)
             new_host= get_server_host(nova_ep, token, server_1_id)
             logging.info("new host is: "+new_host)
@@ -584,14 +578,14 @@ def hugepages_test_case_12(nova_ep, neutron_ep, glance_ep, token, settings, bare
                 if stderr == "" and "icmp_seq=3 Destination Host Unreachable" not in stdout:
                     isPassed= True
                     logging.info ("Ping successfull!")
-                    logging.info("hugepage test Case 9 Passed")
-                    message="hugepage testcase 9 passed, cold migration of instance is successfull, status code is {}, old host {}, new host {} \n, ping status is: \n {}".format(response, compute1, new_host, stdout)
+                    logging.info("hugepage test Case 12 Passed")
+                    message="hugepage testcase 12 passed, cold migration of instance is successfull, status code is {}, old host {}, new host {} \n, ping status is: \n {}".format(response, compute1, new_host, stdout)
                 else:
-                    logging.error("hugepage test Case 9 failed, ping failed after cold migration, status code is {}, old host name is {}, new host name is : {} \n ping status is: \n {}".format(response, compute1, new_host, stdout))
-                    message= "hugepage test Case 9 failed, ping failed after cold migration, status code is {}, old host name is {}, new host name is : {} \n ping status is: \n {}".format(response, compute1, new_host, stdout)
+                    logging.error("hugepage test Case 12 failed, ping failed after cold migration, status code is {}, old host name is {}, new host name is : {} \n ping status is: \n {}".format(response, compute1, new_host, stdout))
+                    message= "hugepage test Case 12 failed, ping failed after cold migration, status code is {}, old host name is {}, new host name is : {} \n ping status is: \n {}".format(response, compute1, new_host, stdout)
             else:
-                logging.error("hugepage test Case 9 failed, cold vmigration of instance failed, status code is {}, old host name is {}, new host name is : {}".format(response, compute1, new_host))
-                message="hugepage test Case 9 failed, cold migration of instance failed, status code is {},  old host name is {}, new host name is : {} ".format(response, compute1, new_host)
+                logging.error("hugepage test Case 12 failed, cold vmigration of instance failed, status code is {}, old host name is {}, new host name is : {}".format(response, compute1, new_host))
+                message="hugepage test Case 12 failed, cold migration of instance failed, status code is {},  old host name is {}, new host name is : {} ".format(response, compute1, new_host)
         
         if(server_1_id != ""):
             logging.info("deleting all servers")
@@ -603,8 +597,8 @@ def hugepages_test_case_12(nova_ep, neutron_ep, glance_ep, token, settings, bare
             logging.info("releasing floating ip")
             delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token) 
     except Exception as e:
-        logging.exception("hugepage test Case 9 failed/ error occured")
-        message="hugepage testcase 9 failed/ error occured {}".format(e)
+        logging.exception("hugepage test Case 12 failed/ error occured")
+        message="hugepage testcase 12 failed/ error occured {}".format(e)
         logging.exception(e)
         logging.error(e)
         if(server_1_id != ""):
@@ -616,7 +610,7 @@ def hugepages_test_case_12(nova_ep, neutron_ep, glance_ep, token, settings, bare
         if(flavor_id !=""):
             logging.info("releasing floating ip")
             delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)   
-    logging.info("hugepage Test Case 9 finished")
+    logging.info("hugepage Test Case12 finished")
     return isPassed, message
 
 def hugepages_test_case_13(nova_ep, neutron_ep, glance_ep, token, settings, baremetal_node_ips,  keypair_public_key, network_id, subnet_id, security_group_id, image_id):
@@ -700,7 +694,54 @@ def hugepages_test_case_13(nova_ep, neutron_ep, glance_ep, token, settings, bare
     logging.info("hugepage Test Case 13 finished")
     return isPassed, message
 
+def hugepages_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_node_ips, network1_id, security_group_id, image_id):
+    message=""
+    testcases_passed= 0
+    logging.info("starting volume testcases")
+    server1_id=floating_1_ip_id=flavor_id=""
+    compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
+    compute0= compute0[0]
+    compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
+    compute1= compute1[0]
 
+    try:
+        flavor_id= search_and_create_flavor(nova_ep, token, "hugepage_flavor", 2048, 2, 40)
+        put_extra_specs_in_flavor(nova_ep, token, flavor_id, False, 1048576)
+        server1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network1_id, security_group_id, compute0)
+        server_build_wait(nova_ep, token, [server1_id])
+        status1= check_server_status(nova_ep, token, server1_id)
+        if status1 == "active":
+            server1_ip= get_server_ip(nova_ep, token, server1_id, settings["network1_name"])
+            server1_port= get_ports(neutron_ep, token, network1_id, server1_ip)
+            public_network_id= search_network(neutron_ep, token, settings["external_network_name"])
+            public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
+            flaoting_1_ip, floating_1_ip_id= create_floating_ip(neutron_ep, token, public_network_id, public_subnet_id, server1_ip, server1_port)
+            testcases_passed, message= volume_test_cases(image_ep, cinder_ep, keystone_ep, nova_ep, token, settings, baremetal_node_ips, server1_id, flaoting_1_ip,  flavor_id, network1_id, security_group_id, compute1) 
+        else:
+            logging.info("volume testcases skipped, becuase server is not created")
+            message= "volume testcases skipped, becuase server is not created"
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(flavor_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token) 
+    except Exception as e:
+        logging.exception(e)
+        message= "volume testcases skipped, error/exception occured {}".format(str(e))
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+        if(flavor_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token) 
+    return testcases_passed, message
 
 
 

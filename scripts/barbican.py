@@ -2,14 +2,15 @@ from openstack_functions import *
 import logging
 import paramiko
 import os
-from test_cases import *
 import time
 import math
 import pexpect
 from subprocess import Popen, PIPE
+import subprocess
 
 
 
+'''
 def server_build_wait(nova_ep, token, server_ids):
     while True:
         flag=0
@@ -62,6 +63,7 @@ def ssh_conne(server1, server2, settings):
     finally:
         client.close()
         logging.info("Connection from client has been closed")  
+'''
 def create_ssl_certificate(settings):
     logging.info("Generating Certificate")
     os.popen("openssl genrsa -out ~/testcase_private_key.pem 1024")
@@ -98,7 +100,7 @@ def barbican_test_case_1(nova_ep, neutron_ep, image_ep, barbican_ep, token, sett
     image_signature= sign_image(settings)
     barbican_key_id= add_key_to_store(barbican_ep, token, key)
 
-    image_id= create_barbican_image(image_ep, token, "test2", "bare", "qcow2", "public", image_signature, barbican_key_id)
+    image_id= create_barbican_image(image_ep, token, "barbican", "bare", "qcow2", "public", image_signature, barbican_key_id)
     image_file= open(os.path.expanduser(settings["image_file"]), 'rb')
     upload_file_to_image(image_ep, token, image_file, image_id)
 
@@ -122,18 +124,108 @@ def barbican_test_case_1(nova_ep, neutron_ep, image_ep, barbican_ep, token, sett
         logging.info("Barbican testcase 1 passed, instance creation successfull with signed image, instance status is: {}".format(status1))
     return isPassed, message
 
-def barbican_test_case_2(barbican_ep, token):  
-    isPassed=False,
+def barbican_test_case_1_2_3_4(barbican_ep, token):  
+    isPassed1=isPassed2=isPassed3=isPassed4=False
+    message1= message2=message3=message4=""
+
+    #Creating Secret
+    logging.info("Creating Secret")
+    secret_id= create_secret(barbican_ep, token, "testcae_secret", "test_case payload")
+    if secret_id != "":
+        isPassed1=True
+        message1= "Barbican testcase 1 passed, secret successfully created, its id is: {}".format(secret_id)
+        time.sleep(5)
+        #searching secret
+        logging.info("searching secret")
+        search_secret= get_secret(barbican_ep, token, secret_id)
+        if(search_secret== None):
+            message2= "Barbican testcase 2 failed, secret not found in list"
+        else:
+            isPassed2=True
+            message2= "Barbican testcase 2 passed, secret  found in list"
+        
+        #updating secret
+        #logging.info("updating secret")
+        #update_status= update_secret(barbican_ep, token, secret_id,"test_case payload" )
+        #if (update_status== True):
+        #    isPassed3= True
+        #    message3= "Barbican testcase 3 passed, secret updated"
+        #else:
+        #     message3= "Barbican testcase 3 failed, secret not updated"
+        
+        #Get Payload
+        logging.info("Getting Payload")
+        payload= get_payload(barbican_ep, token, secret_id)
+        if(payload== "test_case payload"):
+            isPassed3=True
+            message3="Barbican testcase 3 passed, secret successfully created and payload verified, payload received is: {}".format(payload)
+def barbican_test_case_5(barbican_ep, token):  
+    isPassed=False
+    message1=""
+    try:
+        #Generating Symmetric key Key
+        secret_id= add_symmetric_key_to_store(barbican_ep, token)
+        if secret_id != "":
+            isPassed1=True
+            message1= "Barbican testcase 5 passed, symmetric key successfully created, its id is: {}".format(secret_id)
+            time.sleep(5)
+            #searching secret
+            logging.info("searching secret")
+            search_secret= get_secret(barbican_ep, token, secret_id)
+            if(search_secret== None):
+                message2= "Barbican testcase 2 failed, secret not found in list"
+            else:
+                isPassed2=True
+                message2= "Barbican testcase 2 passed, secret  found in list"
+                logging.info("Barbican testcase 3 passed, secret successfully created and payload verified, payload received is: {}".format(payload))
+            else: 
+                message3="Barbican testcase 3 failed, secret created but verification failed, payload received is: {}".format(payload)
+                logging.error("Barbican testcase 3 failed, secret created but verification failed, payload received is: {}".format(payload))
+
+            #Delete Secret
+            logging.info("Delete Secret")
+            delete_resource("{}/v1/secrets/{}".format(barbican_ep, secret_id), token)
+            #searching secret
+            search_secret= get_secret(barbican_ep, token, secret_id)
+            if(search_secret != None):
+                message4= "Barbican testcase 4 failed, secret not deleted"
+            else:
+                isPassed4=True
+                message4= "Barbican testcase 4 passed, secret successfully deleted"
+
+        else:
+            message1= "Barbican testcase 1 failed, secret creation failed"
+            message2= "Barbican testcase 2 failed, secret creation failed"
+            message3= "Barbican testcase 3 failed, secret creation failed"
+            message4= "Barbican testcase 4 failed, secret creation failed"
+    except Exception as e: 
+        logging.except(e)   
+        message1= "Barbican testcase 5 failed/ error occured"
+        message= "Barbican testcase 5 failed/ error occured"
+        message= "Barbican testcase 5 failed/ error occured"
+        message= "Barbican testcase 5 failed/ error occured"
+
+    return isPassed1, message1, isPassed2, message2, isPassed3, message3, isPassed4, message4
+
+def barbican_test_case_5(barbican_ep, token):  
+    isPassed=False
     message=""
-    secret_id= create_secret(barbican_ep, token)
-    payload= get_secret(barbican_ep, token, secret_id)
-    if(payload== "Test_Case Payload"):
-        isPassed=True
-        message="Barbican testcase 2 passed, secret successfully created and payload verified, payload received is: {}".format(payload)
-        logging.info("Barbican testcase 2 passed, secret successfully created and payload verified, payload received is: {}".format(payload))
-    else: 
-        message="Barbican testcase 2 failed, secret created but verification failed, payload received is: {}".format(payload)
-        logging.error("Barbican testcase 2 failed, secret created but verification failed, payload received is: {}".format(payload))
+    try:
+        #Generating Symmetric key Key
+        secret_id= add_symmetric_key_to_store(barbican_ep, token)
+        if secret_id != "":
+            time.sleep(10)
+            #searching secret
+            logging.info("searching secret")
+            search_secret= get_key(barbican_ep, token, secret_id)
+            if( search_secret != None):
+                isPassed1=True
+                message= "Barbican testcase 5 passed, symmetric key successfully created, its id is: {}".format(secret_id)
+    
+        else:
+            message= "Barbican testcase 5 failed, symmetric key not created"
+    except Exception as e:
+        message= "Barbican testcase 5 failed/ error occured"
+        logging.except(e)
+        
     return isPassed, message
-
-

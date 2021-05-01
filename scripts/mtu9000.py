@@ -1,4 +1,5 @@
 from openstack_functions import *
+from volume import *
 import logging
 
 def mtu9000_test_case_3(baremetal_nodes_ips):
@@ -197,7 +198,7 @@ def mtu9000_test_case_9(neutron_ep, token, network_id):
             message= "Network has correct mtu size, mtu size is: {}".format(network["network"]["mtu"])
         else: 
             logging.error("MTU 9000 Test Case 9 failed")
-            message= "Network has correct mtu size, mtu size is: {} ".format(network["network"]["mtu"])
+            message= "Network has incorrect mtu size, mtu size is: {} ".format(network["network"]["mtu"])
     except Exception as e:
         logging.error("MTU 9000 Test Case 9 failed")
         logging.error("Network mtu verification testcase failed/ error occured")
@@ -602,4 +603,47 @@ def mtu9000_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremet
 
     return isPassed, message
 
+def mtu9000_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_node_ips, flavor_id, network1_id, security_group_id, image_id):
+    message=""
+    testcases_passed= 0
+    logging.info("starting volume testcases")
+    server1_id=floating_1_ip_id=""
+    compute0 =  [key for key, val in baremetal_node_ips.items() if "compute-0" in key]
+    print(compute0)
+    compute0= compute0[0]
+    compute1 =  [key for key, val in baremetal_node_ips.items() if "compute-1" in key]
+    compute1= compute1[0]
+    print(compute1)
+
+    try:
+        server1_id= search_and_create_server(nova_ep, token, "test_case_Server1", image_id,settings["key_name"], flavor_id, network1_id, security_group_id, compute0)
+        server_build_wait(nova_ep, token, [server1_id])
+        status1= check_server_status(nova_ep, token, server1_id)
+        if status1 == "active":
+            server1_ip= get_server_ip(nova_ep, token, server1_id, settings["network1_name"])
+            server1_port= get_ports(neutron_ep, token, network1_id, server1_ip)
+            public_network_id= search_network(neutron_ep, token, settings["external_network_name"])
+            public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
+            flaoting_1_ip, floating_1_ip_id= create_floating_ip(neutron_ep, token, public_network_id, public_subnet_id, server1_ip, server1_port)
+            testcases_passed, message= volume_test_cases(image_ep, cinder_ep, keystone_ep, nova_ep, token, settings, baremetal_node_ips, server1_id, flaoting_1_ip,  flavor_id, network1_id, security_group_id, compute1) 
+        else:
+            logging.info("volume testcases skipped, becuase server is not created")
+            message= "volume testcases skipped, becuase server is not created"
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
+  
+    except Exception as e:
+        logging.exception(e)
+        message= "volume testcases skipped, error/exception occured {}".format(str(e))
+        if(server1_id != ""):
+            logging.info("deleting all servers")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server1_id), token) 
+        if(floating_1_ip_id !=""):
+            logging.info("releasing floating ip")
+            delete_resource("{}/v2.0/floatingips/{}".format(neutron_ep, floating_1_ip_id), token)
     
+    return testcases_passed, message

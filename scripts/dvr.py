@@ -915,7 +915,7 @@ def dvr_test_case_32(nova_ep, neutron_ep, image_ep, token, settings, baremetal_n
 
 def dvr_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_node_ips):
     logging.info("starting volume testcases")
-    server1_id= "6faa117e-9349-4303-a31f-29663f916409"
+    server1_id= "e79071c7-a302-4b4f-b8ae-b82456c53ff7"
     server2_id= "299182c3-bb2c-4bbf-af84-4e4ae6602b4e"
     floating_ip= "100.67.62.98"
     message, message2= volume_test_cases(cinder_ep, keystone_ep, nova_ep, token, settings, baremetal_node_ips, server1_id, server2_id, floating_ip)

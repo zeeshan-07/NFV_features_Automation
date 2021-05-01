@@ -21,23 +21,17 @@ from barbican import *
 
 #filename=time.strftime("%d-%m-%Y-%H-%M-%S")+".log"
 #filsename= "logs.log", filemode="w", stream=sys.stdout
-#logging.basicConfig(level=logging.INFO,  format='%(asctime)s %(levelname)s: %(message)s', stream=sys.stdout)
+#logging.basicConfig(level=logging.INFO,  format='%(asctime)s %(levelname)s: %(message)s', stream=sys.stdout, filename= "logs/"+time.strftime("%d-%m-%Y-%H-%M-%S")+".log")
+
 if not os.path.exists('logs'):
     os.makedirs('logs')
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                    datefmt='%m-%d %H:%M',
-                    filename= "logs/"+time.strftime("%d-%m-%Y-%H-%M-%S")+".log",
-                    filemode='w')
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-# set a format which is simpler for console use
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-# tell the handler to use this format
-console.setFormatter(formatter)
-#logging = logging.getLogger("TestCase Logger")
-logging.getLogger().addHandler(console)
 
+
+log_file= "logs/"+ time.strftime("%d-%m-%Y-%H-%M-%S")+".log"
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(message)s',
+                    handlers=[logging.FileHandler(log_file),
+                              logging.StreamHandler()])
 
 def parse_arguments():
     # parse arguments
@@ -45,7 +39,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='pass settings file, feature and deployment type for test cases')
     parser.add_argument('-s', '--settings',
                         help=' settings file',
-                        required=True)
+                        default="settings.json")
     parser.add_argument('-f', '--feature', nargs='+',
                         help='features enabled in deployment',
                         required=True)
@@ -106,150 +100,165 @@ def  read_rc_file(rc_file):
         raise FileNotFoundError ("File {} not found".format(rc_file))
 
 def setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token):
-    keypair_public_key= "" 
-    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
-    keypair_private_key=""
-    logging.info("searching ssh key")
-    keyfile_name= os.path.expanduser(settings["key_file"])
-    if(keypair_key != None):
-        logging.info("deleting old ssh key")
-        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
-
-    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
-    logging.info("ssh key created")
     try:
-        logging.info("deleting old private file")
-        os.system("sudo rm "+keyfile_name)
-    except OSError:
-        pass
-    logging.info("creating key file")
-    keyfile = open(keyfile_name, "w")
-    keyfile.write(keypair_private_key)
-    keyfile.close()
-    logging.info("setting permission to private key file")
-    command= "chmod 400 "+keyfile_name
-    os.system(command)
+        keypair_public_key= "" 
+        keypair_key= search_keypair(nova_ep, token, settings["key_name"])
+        keypair_private_key=""
+        logging.info("searching ssh key")
+        keyfile_name= os.path.expanduser(settings["key_file"])
+        if(keypair_key != None):
+            logging.info("deleting old ssh key")
+            delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
 
-    #Search and create network
-    print(features[0])
-    if(features[0]== "mtu9000"):
-        network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 9000, settings["network_provider_type"], False)  
-        network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 9000, settings["network_provider_type"], False)  
-    else: 
-        network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-        network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
+        keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
+        logging.info("ssh key created")
+        try:
+            logging.info("deleting old private file")
+            os.system("sudo rm "+keyfile_name)
+        except OSError:
+            pass
+        logging.info("creating key file")
+        keyfile = open(keyfile_name, "w")
+        keyfile.write(keypair_private_key)
+        keyfile.close()
+        logging.info("setting permission to private key file")
+        command= "chmod 400 "+keyfile_name
+        os.system(command)
+
+        #Search and create network
+        print(features[0])
+        if(features[0]== "mtu9000"):
+            network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 9000, settings["network_provider_type"], False)  
+            network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 9000, settings["network_provider_type"], False)  
+        else: 
+            network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
+            network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
+        #Search and create subnet
+        subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
+        subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
+        
+        router_id= search_router(neutron_ep, token, settings["router_name"])
+        if router_id is None:
+            public_network_id= public_network_id= search_network(neutron_ep, token, "public")
+            public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
+            router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
+            add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
+            add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
+        #Search and create security group
+        #/v2.0/security-groups
+        project_id= find_admin_project_id(keystone_ep, token)
+        security_group_id= get_default_security_group_id(neutron_ep, token, project_id)
+        #security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
+        try:
+            add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
+            add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
+        except:
+            pass
+        if("barbican" not in features):
+            image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
+        else:
+            image_id= search_image(nova_ep, token, settings["image_name"])
+            if(image_id is None):
+                key= create_ssl_certificate(settings)
+                image_signature= sign_image(settings)
+                barbican_key_id= add_key_to_store(barbican_ep, token, key)
+                image_id= create_barbican_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", image_signature, barbican_key_id)
+            status= get_image_status(image_ep, token, image_id)
+            if status== "queued":
+                image_file= open(os.path.expanduser(settings["image_file"]), 'rb')
+                upload_file_to_image(image_ep, token, image_file, image_id)
+        flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
+        if(features[0] == "ovsdpdk"):
+            logging.info("putting ovsdpdk specs in flavor")
+            put_ovs_dpdk_specs_in_flavor(nova_ep, token, flavor_id)
+        elif("numa" in features or features[0]=="sriov" or features[0]=="sriov_vflag"):
+            logging.info("putting numa specs in flavor")
+            put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
+        return network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key
+    except Exception as e:
+        logging.error("error occured during environment setup/ skipping testscases")
+        logging.exception(e)
+        return "error","error","error","error","error","error","error","error","error"
+
+def delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings):
+    try:
+        server_id= search_server(nova_ep, token, settings["server_1_name"])
+        if server_id is not None:
+            logging.info("deleting server 1")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
+        server_id= search_server(nova_ep, token, settings["server_1_name"])
+        if server_id is not None:
+            logging.info("deleting server 1")
+            delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_id), token)
+        
+        logging.info("deleting flavor")
+        delete_resource("{}/v2.1/flavors/{}".format(nova_ep,flavor_id), token)
+
+        logging.info("deleting image")
+        delete_resource("{}/v2/images/{}".format(image_ep, image_id), token)
+        time.sleep(3)
+        logging.info("removing router interfaces")
+        remove_interface_to_router(neutron_ep, token, router_id, subnet2_id)
+        time.sleep(10)
+        remove_interface_to_router(neutron_ep, token, router_id, subnet1_id)
+        time.sleep(10)
+
+        logging.info("deleting router")
+        delete_resource("{}/v2.0/routers/{}".format(neutron_ep,router_id), token)
+
+        logging.info("deleting networks")
+        delete_resource("{}/v2.0/networks/{}".format(neutron_ep,network1_id), token)
+        time.sleep(5)
+        delete_resource("{}/v2.0/networks/{}".format(neutron_ep,network2_id), token)
+        time.sleep(3)
+    except Exception as e:
+        logging.error("error occured while cleaning resources")
+        logging.exception(e)
+
+def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
+    network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
     
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    #/v2.0/security-groups
+    #Temporary changing quota
+    logging.info("temporary changing quota")
     project_id= find_admin_project_id(keystone_ep, token)
-    security_group_id= get_default_security_group_id(neutron_ep, token, project_id)
-    #security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
+    try: 
+        set_quota(nova_ep, token, project_id, 200, 25, 204800)
+        time.sleep(10)
     except:
         pass
-    if("barbican" not in features):
-        image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-    else:
-        image_id= search_image(nova_ep, token, settings["image_name"])
-        if(image_id is None):
-            key= create_ssl_certificate(settings)
-            image_signature= sign_image(settings)
-            barbican_key_id= add_key_to_store(barbican_ep, token, key)
-            image_id= create_barbican_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", image_signature, barbican_key_id)
-        status= get_image_status(image_ep, token, image_id)
-        if status== "queued":
-            image_file= open(os.path.expanduser(settings["image_file"]), 'rb')
-            upload_file_to_image(image_ep, token, image_file, image_id)
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    if(features[0] == "ovsdpdk"):
-        logging.info("putting ovsdpdk specs in flavor")
-        put_ovs_dpdk_specs_in_flavor(nova_ep, token, flavor_id)
-    elif("numa" in features or features[0]=="sriov" or features[0]=="sriov_vflag"):
-        logging.info("putting numa specs in flavor")
-        put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
-    return network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key
 
-def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features):
-    keypair_public_key= "" # search_and_create_kaypair(nova_ep, token, settings["key_name"])
-    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
-    keypair_private_key=""
-    logging.info("searching ssh key")
-    keyfile_name= os.path.expanduser(settings["key_file"])
-    if(keypair_key != None):
-        logging.info("deleting old ssh key")
-        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
-
-    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
-    logging.info("ssh key created")
-    try:
-        logging.info("deleting old private file")
-        os.system("sudo rm "+keyfile_name)
-    except OSError:
-        pass
-    logging.info("creating key file")
-    keyfile = open(keyfile_name, "w")
-    keyfile.write(keypair_private_key)
-    keyfile.close()
-    logging.info("setting permission to private file")
-    command= "chmod 400 "+keyfile_name
-    os.system(command )
-
-    #Search and create network
-    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
-    except:
-        pass
-    #search and create image
-    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-    
     passed=failed=0
-    
-    t3, message3= numa_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    
+
+    t3, message3= numa_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)  
     if t3 == True:
         t3= "Passed"
         passed=passed+1
     else:
         failed=failed+1
         t3="Failed"
-    print(message3)
     
-    #numa_test_case_5(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network_id, subnet_id, security_group_id, image_id)
-    
-    t6, message6= numa_test_case_6(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    t5, message5, t6, message6,  t9, message9= numa_test_case_5_6_9(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    if t5 == True:
+        t5= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t5="Failed"
     if t6 == True:
         t6= "Passed"
         passed=passed+1
     else:
         failed=failed+1
         t6="Failed"
+    if t9 == True:
+        t9= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t9="Failed"
     
     t7, message7= numa_test_case_7(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t7 == True:
@@ -275,9 +284,7 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
         passed=passed+1
     else:
         failed=failed+1
-        t10="Failed"
-    print(message10)
-    
+        t10="Failed"    
     t11, message11= numa_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t11 == True:
         t11= "Passed"
@@ -294,9 +301,27 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     else:
         failed=failed+1
         t12="Failed"
-    print(message12)
-    #numa_test_case_5(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network_id, subnet_id, security_group_id, image_id)
+    t13, message13= numa_test_case_13(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
+    if t13 == True:
+        t13= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t13="Failed"
+    if(volume== True):
+        volume_passed, volume_message= numa_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, network1_id, security_group_id, image_id)
 
+    #Changing qouta to default settings
+    logging.info("setting default quota")
+    try:
+        set_quota(nova_ep, token, project_id, 20, 20, 51200)
+    except:
+        pass
+    
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
+    
     print("---------------------------")
     print("------NUMA Test Cases------")
     print("---------------------------")
@@ -306,9 +331,11 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
 
 
     print("NUMA test case 3 status: {} ".format(t3))
+    print("NUMA test case 5 status: {} ".format(t5))
     print("NUMA test case 6 status: {} ".format(t6))
     print("NUMA test case 7 status: {} ".format(t7))
     print("NUMA test case 8 status: {} ".format(t8))
+    print("NUMA test case 9 status: {} ".format(t9))
     print("NUMA test case 10 status: {} ".format(t10))
     print("NUMA test case 11 status: {} ".format(t11))
     print("NUMA test case 12 status: {} ".format(t12))
@@ -319,6 +346,9 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     print("NUMA test case 3 status: {} ".format(t3))
     print("NUMA message  {} \n".format(message3))
     print("------------------------------")
+    print("NUMA test case 5 status: {} ".format(t5))
+    print("NUMA message  {} \n".format(message5))
+    print("------------------------------")
     print("NUMA test case 6 status: {} ".format(t6))
     print("NUMA message  {} \n".format(message6))
     print("------------------------------")
@@ -327,6 +357,9 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     print("------------------------------")
     print("NUMA test case 8 status: {} ".format(t8))
     print("NUMA message  {} \n".format(message8))
+    print("------------------------------")
+    print("NUMA test case 9 status: {} ".format(t9))
+    print("NUMA message  {} \n".format(message9))
     print("------------------------------")
     print("NUMA test case 10 status: {} ".format(t10))
     print("NUMA message  {} \n".format(message10))
@@ -338,8 +371,30 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     print("NUMA message  {} \n".format(message12))
     print("------------------------------")
 
-def hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features):
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------Numa Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Hugepage Volume Testcase Results")
+        logging.info("{}".format(volume_message))
+    
+def hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
+    
+    #Temporary changing quota
+    logging.info("temporary changing quota")
+    project_id= find_admin_project_id(keystone_ep, token)
+    try: 
+        set_quota(nova_ep, token, project_id, 200, 25, 204800)
+        time.sleep(10)
+    except:
+        pass
     passed=failed=0  
     t1, message1= hugepages_test_case_1(baremetal_nodes_ips)
     if t1 == True:
@@ -424,65 +479,84 @@ def hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, 
     else:
         failed=failed+1
         t13="Failed"
-    
-    print("--------------------------------")
-    print("------Hugepages Test Cases------")
-    print("------  ------------------------")
-    print("Total Testcases {}".format(failed+passed))
-    print("Testcases Passed {}".format(passed))
-    print("Testcases Failed {}".format(failed))
+    if(volume== True):
+        volume_passed, volume_message= hugepages_volume_test_case(image_ep, nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, network1_id, security_group_id, image_id)
+    #Changing qouta to default settings
+    logging.info("setting default quota")
+    try:
+        set_quota(nova_ep, token, project_id, 20, 20, 51200)
+    except:
+        pass
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
 
-    print("Hugepages test case 1 status: {} ".format(t1))
-    print("Hugepages test case 2 status: {} ".format(t2))
-    print("Hugepages test case 3 status: {} ".format(t3))
-    print("Hugepages test case 4 status: {} ".format(t4))
-    print("Hugepages test case 7 status: {} ".format(t7))
-    print("Hugepages test case 8 status: {} ".format(t8))
-    print("Hugepages test case 9 status: {} ".format(t9))
-    print("Hugepages test case 10 status: {} ".format(t10))
-    print("Hugepages test case 11 status: {} ".format(t11))
-    print("Hugepages test case 12 status: {} ".format(t12))
-    print("Hugepages test case 13 status: {} ".format(t13))
+    logging.info("--------------------------------")
+    logging.info("------Hugepages Test Cases------")
+    logging.info("------  ------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
+
+    logging.info("Hugepages test case 1 status: {} ".format(t1))
+    logging.info("Hugepages test case 2 status: {} ".format(t2))
+    logging.info("Hugepages test case 3 status: {} ".format(t3))
+    logging.info("Hugepages test case 4 status: {} ".format(t4))
+    logging.info("Hugepages test case 7 status: {} ".format(t7))
+    logging.info("Hugepages test case 8 status: {} ".format(t8))
+    logging.info("Hugepages test case 9 status: {} ".format(t9))
+    logging.info("Hugepages test case 10 status: {} ".format(t10))
+    logging.info("Hugepages test case 11 status: {} ".format(t11))
+    logging.info("Hugepages test case 12 status: {} ".format(t12))
+    logging.info("Hugepages test case 13 status: {} ".format(t13))
  
-    print("------------------------------")
-    print("----------Description--------")
-    print("------------------------------")
-    print("Hugepages test case 1 status: {} ".format(t1))
-    print("Hugepages message  {} \n".format(message1))
-    print("------------------------------")
-    print("Hugepages test case 2 status: {} ".format(t2))
-    print("Hugepages message  {} \n".format(message2))
-    print("------------------------------")
-    print("Hugepages test case 3 status: {} ".format(t3))
-    print("Hugepages message  {} \n".format(message3))
-    print("------------------------------")
-    print("Hugepages test case 4 status: {} ".format(t4))
-    print("Hugepages message  {} \n".format(message4))
-    print("------------------------------")
-    print("Hugepages test case 7 status: {} ".format(t7))
-    print("Hugepages message  {} \n".format(message7))
-    print("------------------------------")
-    print("Hugepages test case 8 status: {} ".format(t8))
-    print("Hugepages message  {} \n".format(message8))
-    print("------------------------------")
-    print("Hugepages test case 9 status: {} ".format(t9))
-    print("Hugepages message  {} \n".format(message9))
-    print("------------------------------")
-    print("Hugepages test case 10 status: {} ".format(t10))
-    print("Hugepages message  {} \n".format(message10))
-    print("------------------------------")
-    print("Hugepages test case 11 status: {} ".format(t11))
-    print("Hugepages message  {} \n".format(message11))
-    print("------------------------------")
-    print("Hugepages test case 12 status: {} ".format(t12))
-    print("Hugepages message  {} \n".format(message12))
-    print("------------------------------")
-    print("Hugepages test case 13 status: {} ".format(t13))
-    print("Hugepages message  {} \n".format(message13))
-    print("------------------------------")
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 1 status: {} ".format(t1))
+    logging.info("Hugepages message  {} \n".format(message1))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 2 status: {} ".format(t2))
+    logging.info("Hugepages message  {} \n".format(message2))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 3 status: {} ".format(t3))
+    logging.info("Hugepages message  {} \n".format(message3))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 4 status: {} ".format(t4))
+    logging.info("Hugepages message  {} \n".format(message4))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 7 status: {} ".format(t7))
+    logging.info("Hugepages message  {} \n".format(message7))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 8 status: {} ".format(t8))
+    logging.info("Hugepages message  {} \n".format(message8))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 9 status: {} ".format(t9))
+    logging.info("Hugepages message  {} \n".format(message9))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 10 status: {} ".format(t10))
+    logging.info("Hugepages message  {} \n".format(message10))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 11 status: {} ".format(t11))
+    logging.info("Hugepages message  {} \n".format(message11))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 12 status: {} ".format(t12))
+    logging.info("Hugepages message  {} \n".format(message12))
+    logging.info("------------------------------")
+    logging.info("Hugepages test case 13 status: {} ".format(t13))
+    logging.info("Hugepages message  {} \n".format(message13))
+    logging.info("------------------------------ \n\n\n")
 
-
-def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features):
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------Hugepages Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Hugepage Volume Testcase Results")
+        logging.info("{}".format(volume_message))
+    
+def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     #creating zones
     try:
         compute0 =  [key for key, val in baremetal_nodes_ips.items() if "compute-0" in key]
@@ -647,10 +721,10 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
     try:
         remove_host_from_zone(nova_ep, token, nova0_id, compute0)
         remove_host_from_zone(nova_ep, token, nova1_id, compute1)
-         remove_host_from_zone(nova_ep, token, nova1_id, compute2)
+        remove_host_from_zone(nova_ep, token, nova1_id, compute2)
         add_host_to_zone(nova_ep, token, default_zone_id, compute0)
         add_host_to_zone(nova_ep, token, default_zone_id, compute1)
-         add_host_to_zone(nova_ep, token, default_zone_id, compute2)
+        add_host_to_zone(nova_ep, token, default_zone_id, compute2)
         delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova0_id), token)
         delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova1_id), token)
     except Exception as e:
@@ -730,11 +804,19 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
     #print(t20)
     #print(message20)
 
-def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features):
+def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     #creating zones
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
     passed=failed=0    
-    
+    #Temporary changing quota
+    logging.info("temporary changing quota")
+    project_id= find_admin_project_id(keystone_ep, token)
+    try: 
+        set_quota(nova_ep, token, project_id, 200, 25, 204800)
+        time.sleep(10)
+    except:
+        pass
+
     t9, message9= ovsdpdk_test_case_9(baremetal_nodes_ips, settings)
     if t9 == True:
         t9= "Passed"
@@ -851,7 +933,12 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
     else:
         failed=failed+1
         t50="Failed"
-
+    #Changing qouta to default settings
+    logging.info("setting default quota")
+    try:
+        set_quota(nova_ep, token, project_id, 20, 20, 51200)
+    except:
+        pass
     print("------------------------------")
     print("------OVSDPDK Test Cases------")
     print("------------------------------")
@@ -926,13 +1013,16 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
     print("OVSDPDK test case 50 status: {} ".format(t50))
     print("OVSDPDK message  {} \n".format(message50))
     print("------------------------------")
-    
-  
-def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features):
+     
+def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features, volume):
     
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
-    passed=failed=0
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
     
+    passed=failed=0
+    '''
     t3, message3= mtu9000_test_case_3(baremetal_nodes_ips)
     if t3 is True:
         passed=passed+1
@@ -1044,81 +1134,99 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
     else: 
         failed= failed+1
         t16= "Failed"
+    '''    
+    if(volume== True):
+        volume_passed, volume_message= mtu9000_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, flavor_id,  network1_id, security_group_id, image_id)
+
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
     
-    print("------------------------------")
-    print("------MTU9000 Test Cases------")
-    print("------------------------------")
-    print("Total Testcases {}".format(failed+passed))
-    print("Testcases Passed {}".format(passed))
-    print("Testcases Failed {}".format(failed))
-    print("MTU test case 3 status: {} ".format(t3))
-    print("MTU test case 4 status: {} ".format(t4))
-    print("MTU test case 5 status: {} ".format(t5))
-    print("MTU test case 6 status: {} ".format(t6))
-    print("MTU test case 7 status: {} ".format(t7))
-    print("MTU test case 8 status: {} ".format(t8))
+    logging.info("------------------------------")
+    logging.info("------MTU9000 Test Cases------")
+    logging.info("------------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
+    logging.info("MTU test case 3 status: {} ".format(t3))
+    logging.info("MTU test case 4 status: {} ".format(t4))
+    logging.info("MTU test case 5 status: {} ".format(t5))
+    logging.info("MTU test case 6 status: {} ".format(t6))
+    logging.info("MTU test case 7 status: {} ".format(t7))
+    logging.info("MTU test case 8 status: {} ".format(t8))
     
-    print("MTU test case 9 status: {} ".format(t9))
-    print("MTU test case 10 status: {} ".format(t10))
-    print("MTU test case 11 status: {} ".format(t11))
-    print("MTU test case 12 status: {} ".format(t12))
-    print("MTU test case 13 status: {} ".format(t13))
+    logging.info("MTU test case 9 status: {} ".format(t9))
+    logging.info("MTU test case 10 status: {} ".format(t10))
+    logging.info("MTU test case 11 status: {} ".format(t11))
+    logging.info("MTU test case 12 status: {} ".format(t12))
+    logging.info("MTU test case 13 status: {} ".format(t13))
     
-    print("MTU test case 14 status: {} ".format(t14))
-    print("MTU test case 15 status: {} ".format(t15))
-    print("MTU test case 16 status: {} ".format(t16))
-    print("------------------------------")
-    print("----------Description--------")
-    print("------------------------------")
+    logging.info("MTU test case 14 status: {} ".format(t14))
+    logging.info("MTU test case 15 status: {} ".format(t15))
+    logging.info("MTU test case 16 status: {} ".format(t16))
     
-    print("MTU test case 3 status: {} ".format(t3))
-    print("Mtu message  {} \n".format(message3))
-    print("------------------------------")
-    print("MTU test case 4 status: {} ".format(t4))
-    print("Mtu message  {} \n".format(message4))
-    print("------------------------------")
-    print("MTU test case 5 status: {} ".format(t5))
-    print("Mtu message  {} \n".format(message5))
-    print("------------------------------")
-    print("MTU test case 6 status: {} ".format(t6))
-    print("Mtu message  {} \n".format(message6))
-    print("------------------------------")
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
     
-    print("MTU test case 7 status: {} ".format(t7))
-    print("Mtu message  {} \n".format(message7))
-    print("------------------------------")
-    print("MTU test case 8 status: {} ".format(t8))
-    print("Mtu message  {} \n".format(message8))
-    print("------------------------------")
+    logging.info("MTU test case 3 status: {} ".format(t3))
+    logging.info("Mtu message  {} \n".format(message3))
+    logging.info("------------------------------")
+    logging.info("MTU test case 4 status: {} ".format(t4))
+    logging.info("Mtu message  {} \n".format(message4))
+    logging.info("------------------------------")
+    logging.info("MTU test case 5 status: {} ".format(t5))
+    logging.info("Mtu message  {} \n".format(message5))
+    logging.info("------------------------------")
+    logging.info("MTU test case 6 status: {} ".format(t6))
+    logging.info("Mtu message  {} \n".format(message6))
+    logging.info("------------------------------")
     
-    print("MTU test case 9 status: {} ".format(t9))
-    print("Mtu message  {} \n".format(message9))
-    print("------------------------------")
-    print("MTU test case 10 status: {} ".format(t10))
-    print("Mtu message  {} \n".format(message10))
-    print("------------------------------")
-    print("MTU test case 11 status: {} ".format(t11))
-    print("Mtu message  {} \n".format(message11))
-    print("------------------------------")
-    print("MTU test case 12 status: {} ".format(t12))
-    print("Mtu message  {} \n".format(message12))
-    print("------------------------------")
-    print("MTU test case 13 status: {} ".format(t13))
-    print("Mtu message  {} \n".format(message13))
-    print("------------------------------")
+    logging.info("MTU test case 7 status: {} ".format(t7))
+    logging.info("Mtu message  {} \n".format(message7))
+    logging.info("------------------------------")
+    logging.info("MTU test case 8 status: {} ".format(t8))
+    logging.info("Mtu message  {} \n".format(message8))
+    logging.info("------------------------------")
     
-    print("MTU test case 14 status: {} ".format(t14))
-    print("Mtu message  {} \n".format(message14))
-    print("------------------------------")
+    logging.info("MTU test case 9 status: {} ".format(t9))
+    logging.info("Mtu message  {} \n".format(message9))
+    logging.info("------------------------------")
+    logging.info("MTU test case 10 status: {} ".format(t10))
+    logging.info("Mtu message  {} \n".format(message10))
+    logging.info("------------------------------")
+    logging.info("MTU test case 11 status: {} ".format(t11))
+    logging.info("Mtu message  {} \n".format(message11))
+    logging.info("------------------------------")
+    logging.info("MTU test case 12 status: {} ".format(t12))
+    logging.info("Mtu message  {} \n".format(message12))
+    logging.info("------------------------------")
+    logging.info("MTU test case 13 status: {} ".format(t13))
+    logging.info("Mtu message  {} \n".format(message13))
+    logging.info("------------------------------")
     
-    print("MTU test case 15 status: {} ".format(t15))
-    print("Mtu message  {} \n".format(message15))
-    print("------------------------------")
-    print("MTU test case 16 status: {} ".format(t16))
-    print("Mtu message  {} \n".format(message16))
-    print("------------------------------")
+    logging.info("MTU test case 14 status: {} ".format(t14))
+    logging.info("Mtu message  {} \n".format(message14))
+    logging.info("------------------------------")
     
-def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features):
+    logging.info("MTU test case 15 status: {} ".format(t15))
+    logging.info("Mtu message  {} \n".format(message15))
+    logging.info("------------------------------")
+    logging.info("MTU test case 16 status: {} ".format(t16))
+    logging.info("Mtu message  {} \n".format(message16))
+    logging.info("------------------------------")
+   
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------MTU9000 Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Hugepage Volume Testcase Results")
+        logging.info("{}".format(volume_message))
+    
+def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
     passed=failed=0
@@ -1332,31 +1440,9 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     
     #dvr_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips)
 
-def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features):
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
-    #Search and create network
-    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
-    except:
-        pass
-    #search and create image
-    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-    
+def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
+    network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+
     passed=failed=0
     '''
     t5,message5, t6,message6= octavia_test_case_5_6(nova_ep, neutron_ep, image_ep, loadbal_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id)
@@ -1542,7 +1628,7 @@ def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, key
     print(message34)
     '''
 
-def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features):
+def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features, volume):
     #creating zones
     
     try:
@@ -1661,7 +1747,7 @@ def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep
         failed=failed+1
         t8="Failed"    
     '''
-def storage_test_cases(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips, features):
+def storage_test_cases(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips, features, volume):
     #creating zones
         
     keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
@@ -1694,7 +1780,7 @@ def storage_test_cases(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, to
     storage_cases_1(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     #print(t7)
     #print(message7)
-def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features):
+def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
      #creating zones
     
     try:
@@ -1888,64 +1974,25 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     print("HCI message  {} \n".format(message10))
     print("------------------------------")
 
-def barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips, features):
-     #creating zones
-    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
-    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
-    keypair_private_key=""
-    logging.info("searching ssh key")
-    keyfile_name= os.path.expanduser(settings["key_file"])
-    if(keypair_key != None):
-        logging.info("deleting old ssh key")
-        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+def barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips, features, volume):
 
-    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
-    logging.info("ssh key created")
-    try:
-        logging.info("deleting old private file")
-        os.system("sudo rm "+keyfile_name)
-    except OSError:
-        pass
-    logging.info("creating key file")
-    keyfile = open(keyfile_name, "w")
-    keyfile.write(keypair_private_key)
-    keyfile.close()
-    logging.info("setting permission to private key file")
-    command= "chmod 400 "+keyfile_name
-    os.system(command )
-
-
-    #Search and create network
-    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
-    except:
-        pass
-    #search and create image
-    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-
-    passed=failed=0
-    
     #t1,message1= barbican_test_case_1(nova_ep, neutron_ep, image_ep, barbican_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     #print(t1)
     #print(message1)
-    t12,message2= barbican_test_case_2(barbican_ep, token)
-
-
+    
+    t1,message1, t2,message2, t3,message3, t4,message4 = barbican_test_case_1_2_3_4(barbican_ep, token) 
+    print(t1)
+    print(message1)
+    print(t2)
+    print(message2)
+    print(t3)
+    print(message3)
+    print(t4)
+    print(message4)
+    
+    t5,message5= barbican_test_case_5(barbican_ep, token)
+    print(t5)
+    print(message5)
 
 
 def main():
@@ -1957,8 +2004,6 @@ def main():
         logging.exception("error parsing arguments {}".format(e))
 
     #Validate Arguments
-    print("arguments of feature are")
-    print(arguments.feature)
     logging.info("validating arguments")
     if not(arguments.feature[0] == "numa" or  arguments.feature[0] == "hugepages" or arguments.feature[0] == "ovsdpdk" or arguments.feature[0] == "sriov" or arguments.feature[0]=="mtu9000" or arguments.feature[0]=="dvr" or arguments.feature[0]=="octavia" or arguments.feature[0]=="sriov_vflag", arguments.feature[0]=="hci", arguments.feature[0]=="barbican"):
         logging.critical("Invalid Argument {}".format(arguments.feature))
@@ -2008,13 +2053,6 @@ def main():
     #get hist list
     hosts_list= get_compute_host_list(nova_ep, token)
     
-    #Temporary changing quota
-    project_id= find_admin_project_id(keystone_ep, token)
-    try: 
-        set_quota(nova_ep, token, project_id, 200, 25, 204800)
-        time.sleep(10)
-    except:
-        pass
 
     #compute nodes name when when hci is deployed 
     if arguments.feature=="hci":
@@ -2034,36 +2072,28 @@ def main():
     compute2= [i for i in hosts_list if  (compute_node_search_pattern+"2") in i]
     compoute2_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"2") in key]
     baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compoute2_key[0])
-
-    print("********************")
-    print(arguments.volume)
-    print("********************")
     
     #Run Test Cases
     if arguments.feature[0] == "numa":
-        numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features) 
+        numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature,  arguments.volume) 
     if arguments.feature[0] == "hugepages":
-        hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
+        hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "ovsdpdk":
-        ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
+        ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "sriov":
-        sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
+        sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "mtu9000":
-        mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
+        mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "dvr":
-        dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature)
+        dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume)
     if arguments.feature[0] == "octavia":
-        octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
+        octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "sriov_vflag":
-        sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
+        sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "hci":
-        hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
+        hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "barbican":
-        barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips, arguments.feature) 
-    #Changing qouta to default settings
-    try:
-        set_quota(nova_ep, token, project_id, 20, 20, 51200)
-    except:
-        pass
+        barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
+   
 if __name__ == "__main__":
     main()

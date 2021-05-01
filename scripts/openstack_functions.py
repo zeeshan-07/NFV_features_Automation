@@ -44,7 +44,6 @@ def parse_json_to_search_resource(data, resource_name, resource_key, resource_va
             logging.warning("{} already exists".format(resource_value))
             return res[return_key]
             break
-        
     else:
         logging.info("{} does not exist".format(resource_value))
 
@@ -85,6 +84,7 @@ def create_network(neutron_ep, token, network_name, mtu_size, network_provider_t
         }
 
     response= send_post_request('{}/v2.0/networks'.format(neutron_ep), token, payload)
+    logging.debug(response.text)
     logging.info("successfully created network {}".format(network_name)) if response.ok else response.raise_for_status()
     data=response.json()
     return data['network']['id']
@@ -259,6 +259,15 @@ def add_interface_to_router(neutron_ep, token, router_id, subnet_id):
     response= send_put_request('{}/v2.0/routers/{}/add_router_interface'.format(neutron_ep,router_id), token, payload)
     print(response.text)
     logging.info("successfully added interface to router {}".format(router_id)) if response.ok else response.raise_for_status()  
+def remove_interface_to_router(neutron_ep, token, router_id, subnet_id):
+    payload={
+    "subnet_id": subnet_id
+    }
+    
+    response= send_put_request('{}/v2.0/routers/{}/remove_router_interface'.format(neutron_ep,router_id), token, payload)
+    print(response.text)
+    logging.info("successfully removed interface from router {}".format(router_id)) if response.ok else response.raise_for_status()  
+
 def get_default_security_group_id(neutron_ep, token, project_id):
     response= send_get_request("{}/v2.0/security-groups".format(neutron_ep), token)
     logging.info("successfully received security group list") if response.ok else response.raise_for_status()
@@ -499,6 +508,22 @@ def perform_action_on_server(nova_ep,token, server_id, action):
     }
     response= send_post_request("{}/v2.1/servers/{}/action".format(nova_ep, server_id), token, payload)
     return response.status_code
+def create_server_snapshot (nova_ep,token, server_id, snapshot_name):
+    payload={
+    "createImage" : {
+        "name" : snapshot_name,
+        "metadata": {}
+        }
+    }
+    
+    response= send_post_request("{}/v2.1/servers/{}/action".format(nova_ep, server_id), token, payload)
+    print(response.text)
+    if(response.status_code == 202):
+        data= response.json()
+        return data["image_id"]
+    else:
+        return None
+
 def resize_server(nova_ep,token, server_id, flavor_id):
     payload= {
     "resize" : {
@@ -523,14 +548,10 @@ def live_migrate_server(nova_ep,token, server_id, host=None):
     payload= {
         "os-migrateLive": {
             "block_migration": "auto",
-            #"host": host
+            "host": host
         }
         }
-    payload2= {
-        "host": host
-    }
-    if host is not None:
-        payload= {"os-migrateLive":{**payload["os-migrateLive"], **payload2}}
+
     response=send_post_request("{}/v2.1/servers/{}/action".format(nova_ep, server_id), token, payload)
     logging.info(response.text)
     return response.status_code
@@ -612,6 +633,7 @@ def attach_volume_to_server( nova_ep, token, project_id, server_id, volume_id, m
 
 def search_volume(storage_ep, token, volume_name, project_id):
     response= send_get_request("{}/v3/{}/volumes".format(storage_ep, project_id), token)
+    print(response.text)
     logging.info("successfully received volume list") if response.ok else response.raise_for_status()
     return parse_json_to_search_resource(response, "volumes", "name",volume_name, "id")
 
@@ -626,9 +648,39 @@ def create_volume(storage_ep, token, project_id, volume_name, volume_size, avail
                 }
             }
     response= requests.post("{}/v3/{}/volumes".format(storage_ep, project_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    logging.debug(response.text)
+    print(response.text)
     logging.info("successfully created volume {}".format(volume_name)) if response.ok else response.raise_for_status()
     data= response.json()
     return data["volume"]["id"]
+def upscale_voume(storage_ep, token, project_id, volume_id, volume_size):
+    payload= {"os-extend": {"new_size": volume_size}}
+    response= requests.post("{}/v3/{}/volumes/{}/action".format(storage_ep, project_id, volume_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    print(response.text)
+    if(response.status_code ==202):
+        logging.debug(response.text)
+        print(response.text)
+        logging.info("successfully updated  volume") if response.ok else response.raise_for_status()
+        return True
+    else:
+        return False
+def migrate_voume(storage_ep, token, project_id, volume_id):
+    payload={
+    "os-migrate_volume": {
+        "host":"r185-controller-2"
+        }
+    }
+    #payload= {"os-extend": {"new_size": volume_size}}
+    response= requests.post("{}/v3/{}/volumes/{}/action".format(storage_ep, project_id, volume_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    print(response.text)
+    if(response.status_code ==202):
+        logging.debug(response.text)
+        print(response.text)
+        logging.info("successfully migrated  volume") if response.ok else response.raise_for_status()
+        return True
+    else:
+        return False
+
 def search_and_create_volume(storage_ep, token, project_id, volume_name, volume_size, availability_zone=None):
     volume_id= search_volume(storage_ep, token, volume_name, project_id)
     if volume_id is None:
@@ -640,6 +692,54 @@ def check_volume_status(storage_ep, token, volume_id, project_id):
     data= response.json()
     return data["volume"]["status"] if response.ok else response.raise_for_status()
 
+def create_volume_snapshot(storage_ep, token, project_id, volume_id, snapshot_name):
+    payload= {"snapshot": {"volume_id": volume_id, 
+    "force": "false", 
+    "name": snapshot_name }
+            }
+    response= requests.post("{}/v3/{}/snapshots".format(storage_ep, project_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    logging.debug(response.text)
+    print(response.text)
+    if(response.status_code == 202):
+        logging.info("successfully created snapshot {}".format(snapshot_name)) if response.ok else response.raise_for_status()
+        data= response.json()
+        return data["snapshot"]["id"]
+    else:
+        return None
+
+def replicate_volume(storage_ep, token, project_id, volume_name, source_id):
+    payload= {"volume":{
+                "source_volid": source_id,
+                "name": volume_name
+                
+                }
+            }
+    response= requests.post("{}/v3/{}/volumes".format(storage_ep, project_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    logging.debug(response.text)
+    print(response.text)
+    if(response.status_code== 202):
+        logging.info("successfully replicated volume {}".format(volume_name)) if response.ok else response.raise_for_status()
+        data= response.json()
+        return data["volume"]["id"]
+    else: 
+        return None
+
+def create_volume_from_snapshot(storage_ep, token, project_id, volume_name, snapshot_id):
+
+    payload= {"volume":{
+                "snapshot_id": snapshot_id,
+                "name": volume_name
+                }
+            }
+    response= requests.post("{}/v3/{}/volumes".format(storage_ep, project_id), headers= {'content-type': "application/json", 'X-Auth-Token': token}, data=json.dumps(payload))
+    logging.debug(response.text)
+    print(response.text)
+    if(response.status_code== 202):
+        logging.info("successfully created volume {}".format(volume_name)) if response.ok else response.raise_for_status()
+        data= response.json()
+        return data["volume"]["id"]
+    else: 
+        return None
 
 def find_admin_project_id(keystone_ep, token):
     response= send_get_request("{}/v3/projects".format(keystone_ep), token)
@@ -976,6 +1076,20 @@ def add_key_to_store(barbican_ep, token, key):
     print("Key is: "+key_id)
     logging.info("successfully add key to barbican") if response.ok else response.raise_for_status()
     return key_id
+def add_symmetric_key_to_store(barbican_ep, token):
+    payload= {"type": "key", "meta": {"name": "swift_key", "algorithm": "aes", "bit_length": 256, "payload_content_type": "application/octet-stream", "mode": "ctr"}}
+
+
+    response= send_post_request("{}/v1/orders/".format(barbican_ep), token, payload)
+    key_id= str(response.text)
+    key_id= key_id.split("/")
+    key_id= key_id[-1]
+    key_id= key_id.strip('"}')
+    
+    print("Key is: "+key_id)
+    logging.info("successfully add key to barbican") if response.ok else response.raise_for_status()
+    return key_id
+
 
 def create_barbican_image(nova_ep, token, image_name, container_format, disk_format, image_visibility, image_signature, key_id):
     payload ={
@@ -992,23 +1106,65 @@ def create_barbican_image(nova_ep, token, image_name, container_format, disk_for
     logging.info("successfully created image {}".format(image_name)) if response.ok else response.raise_for_status()
     data= response.json()
     return data["id"]
-def create_secret(barbican_ep, token):
-    payload= {"name": "testSecret", "algorithm": "aes", "mode": "cbc", "bit_length": 256, "secret_type": "opaque", 
-                "payload": "Test_Case Payload", 
+
+
+
+def create_secret(barbican_ep, token, name, payload):
+    key_id=""
+    payload= {"name": name, "algorithm": "aes", "mode": "cbc", "bit_length": 256, "secret_type": "opaque" ,
+                "payload": payload, 
                 "payload_content_type": "text/plain"}
 
     response= send_post_request("{}/v1/secrets/".format(barbican_ep), token, payload)
-    key_id= str(response.text)
-    key_id= key_id.split("/")
-    key_id= key_id[-1]
-    key_id= key_id.strip('"}')
-    print("Key is: "+key_id)
-    logging.info("successfully add secret to barbican") if response.ok else response.raise_for_status()
+    print(response.text)
+    print(response.status_code)
+    if (response.status_code==201):
+        key_id= str(response.text)
+        key_id= key_id.split("/")
+        key_id= key_id[-1]
+        key_id= key_id.strip('"}')
+        logging.info("successfully add secret to barbican") if response.ok else response.raise_for_status()
+    else:
+        logging.info("failed to create secret")
     return key_id
+def update_secret(barbican_ep, token, url, data):
+    payload= {"data"}
+    #payload= bytes("data", 'utf-8')
+    #payload= {payload}
+    #print(payload)
+    response=""
+    #payload= {"payload_content_type": "text/plain"}
+    try:
+       response= requests.put("{}/v1/secrets/".format(barbican_ep), headers= {"Accept":"text/plain", 'X-Auth-Token': token}, data=json.dumps(payload))
+    except Exception as e:
+        logging.error( "request processing failure ", stack_info=True)
+        logging.exception(e)
+    #response= send_put_request("{}/v1/secrets/".format(barbican_ep), token, payload)
+    print(response)
+    if (response.status_code==201):
+        logging.info("successfully updated secret to barbican") if response.ok else response.raise_for_status()
+        return True
+    else:
+        logging.info("failed to update secret")
+        return False
 def get_secret(barbican_ep, token, secret_id):
+    response= send_get_request("{}/v1/secrets/{}".format(barbican_ep,secret_id), token)
+    print(response.text)
+    if response.status_code==200:
+        return response.text
+    else:
+        return None 
+def get_key(barbican_ep, token, secret_id):
+    response= send_get_request("{}/v1/orders/{}".format(barbican_ep,secret_id), token)
+    print(response.text)
+    if response.status_code==200:
+        return response.text
+    else:
+        return None 
+def get_payload(barbican_ep, token, secret_id):
     response= send_get_request("{}/v1/secrets/{}/payload".format(barbican_ep,secret_id), token)
+    print(response.text)
     return response.text
-
 
 #
 #Server Functions

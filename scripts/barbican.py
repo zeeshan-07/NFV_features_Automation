@@ -200,7 +200,7 @@ def barbican_test_case_5(barbican_ep, token):
             message3= "Barbican testcase 3 failed, secret creation failed"
             message4= "Barbican testcase 4 failed, secret creation failed"
     except Exception as e: 
-        logging.except(e)   
+        logging.exception(e)   
         message1= "Barbican testcase 5 failed/ error occured"
         message= "Barbican testcase 5 failed/ error occured"
         message= "Barbican testcase 5 failed/ error occured"
@@ -227,6 +227,6 @@ def barbican_test_case_5(barbican_ep, token):
             message= "Barbican testcase 5 failed, symmetric key not created"
     except Exception as e:
         message= "Barbican testcase 5 failed/ error occured"
-        logging.except(e)
+        logging.exception(e)
         
     return isPassed, message

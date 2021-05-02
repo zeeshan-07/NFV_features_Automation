@@ -177,10 +177,11 @@ def barbican_test_case_5(barbican_ep, token):
             else:
                 isPassed2=True
                 message2= "Barbican testcase 2 passed, secret  found in list"
-                logging.info("Barbican testcase 3 passed, secret successfully created and payload verified, payload received is: {}".format(payload))
-            else: 
-                message3="Barbican testcase 3 failed, secret created but verification failed, payload received is: {}".format(payload)
-                logging.error("Barbican testcase 3 failed, secret created but verification failed, payload received is: {}".format(payload))
+                logging.info("Barbican testcase 2passed, secret successfully created and payload verified, payload received is: {}".format(payload))
+            
+            #else: 
+            #    message3="Barbican testcase 3 failed, secret created but verification failed, payload received is: {}".format(payload)
+            #    logging.error("Barbican testcase 3 failed, secret created but verification failed, payload received is: {}".format(payload))
 
             #Delete Secret
             logging.info("Delete Secret")

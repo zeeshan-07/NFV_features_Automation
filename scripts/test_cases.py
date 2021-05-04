@@ -1950,10 +1950,10 @@ def main():
         baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compute2_key[0])
     #Set empty names if less compute nodes to avoid testcase failure
     if(settings["compute_nodes"]== 1):
-        baremetal_node_ips["compute-1"]= ""
-        baremetal_node_ips["compute-2"]
+        baremetal_nodes_ips["compute-1"]= ""
+        baremetal_nodes_ips["compute-2"]
     if(settings["compute_nodes"]== 2):
-        baremetal_node_ips["compute-2"]=""
+        baremetal_nodes_ips["compute-2"]=""
     
     print("#################")
     print(baremetal_node_ips)

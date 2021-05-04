@@ -267,7 +267,6 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     else:
         failed=failed+1
         t7="Failed"
-    print(message7)
     
     t8, message8= numa_test_case_8(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t8 == True:
@@ -276,7 +275,6 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     else:
         failed=failed+1
         t8="Failed"
-    print(message8)
     
     t10, message10= numa_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t10 == True:
@@ -292,7 +290,6 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     else:
         failed=failed+1
         t11="Failed"
-    print(message11)
     
     t12, message12= numa_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     if t12 == True:
@@ -578,56 +575,12 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
         pass
     time.sleep(5)
     
-    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
-    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
-    keypair_private_key=""
-    logging.info("searching ssh key")
-    keyfile_name= os.path.expanduser(settings["key_file"])
-    if(keypair_key != None):
-        logging.info("deleting old ssh key")
-        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
+    network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
+    
 
-    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
-    logging.info("ssh key created")
-    try:
-        logging.info("deleting old private file")
-        os.system("sudo rm "+keyfile_name)
-    except OSError:
-        pass
-    logging.info("creating key file")
-    keyfile = open(keyfile_name, "w")
-    keyfile.write(keypair_private_key)
-    keyfile.close()
-    logging.info("setting permission to private key file")
-    command= "chmod 400 "+keyfile_name
-    os.system(command )
-        
-    #keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
-
-    #Search and create network
-    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
-    except:
-        pass
-    #search and create image
-    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    put_extra_specs_in_flavor(nova_ep, token, flavor_id, True)
     passed=failed=0
     
     
@@ -682,8 +635,6 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
     else:
         failed=failed+1
         t14="Failed" 
-    print(message14)
-    print(message13)
     
     t15,message15= sriov_test_case_15(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, security_group_id, image_id, flavor_id)
     if t15 == True:
@@ -730,7 +681,10 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
     except Exception as e:
         print(e)
         pass
-    
+     
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
     print("---------------------------")
     print("------SRIOV Test Cases------")
     print("---------------------------")
@@ -805,8 +759,12 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
     #print(message20)
 
 def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
-    #creating zones
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
+    
+    
     passed=failed=0    
     #Temporary changing quota
     logging.info("temporary changing quota")
@@ -831,7 +789,7 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
     else:
         failed=failed+1
         t11="Failed"
-    '''
+    
     t15, message15= ovsdpdk_test_case_15(nova_ep, token, settings)
     if t15 == True:
         t15= "Passed"
@@ -840,7 +798,7 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
     else:
         failed=failed+1
         t15="Failed"
-    '''
+    
     t16, message16= ovsdpdk_test_case_16()
     if t16 == True:
         t16= "Passed"
@@ -939,80 +897,96 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
         set_quota(nova_ep, token, project_id, 20, 20, 51200)
     except:
         pass
-    print("------------------------------")
-    print("------OVSDPDK Test Cases------")
-    print("------------------------------")
-    print("Total Testcases {}".format(failed+passed))
-    print("Testcases Passed {}".format(passed))
-    print("Testcases Failed {}".format(failed))
+
+    if(volume== True):
+        volume_passed, volume_message= ovsdpdk_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, flavor_id,  network1_id, security_group_id, image_id)
     
-    print("OVSDPDK test case 9 status: {} ".format(t9))
-    print("OVSDPDK test case 11 status: {} ".format(t11))
-    print("OVSDPDK test case 15 status: {} ".format(t15))
-    print("OVSDPDK test case 16 status: {} ".format(t16))
-    print("OVSDPDK test case 17 status: {} ".format(t17))
-    print("OVSDPDK test case 18 status: {} ".format(t18))
-    #print("OVSDPDK test case 22 status: {} ".format(t22))
-    print("OVSDPDK test case 28 status: {} ".format(t28))
-    #print("OVSDPDK test case 36 status: {} ".format(t36))
-    print("OVSDPDK test case 43 status: {} ".format(t43))
-    print("OVSDPDK test case 46 status: {} ".format(t46))
-    print("OVSDPDK test case 47 status: {} ".format(t47))
-    print("OVSDPDK test case 48 status: {} ".format(t48))
-    print("OVSDPDK test case 49 status: {} ".format(t49))
-    print("OVSDPDK test case 50 status: {} ".format(t50))
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+ 
+    logging.info("------------------------------")
+    logging.info("------OVSDPDK Test Cases------")
+    logging.info("------------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
     
-    print("------------------------------")
-    print("----------Description--------")
-    print("------------------------------")
-    print("OVSDPDK test case 9 status: {} ".format(t9))
-    print("OVSDPDK message  {} \n".format(message9))
-    print("------------------------------")
-    print("OVSDPDK test case 11 status: {} ".format(t11))
-    print("OVSDPDK message  {} \n".format(message11))
-    print("------------------------------")
-    print("OVSDPDK test case 15 status: {} ".format(t15))
-    print("OVSDPDK message  {} \n".format(message15))
-    print("------------------------------")
-    print("OVSDPDK test case 16 status: {} ".format(t16))
-    print("OVSDPDK message  {} \n".format(message16))
-    print("------------------------------")
-    print("OVSDPDK test case 17 status: {} ".format(t17))
-    print("OVSDPDK message  {} \n".format(message17))
-    print("------------------------------")
-    print("OVSDPDK test case 18 status: {} ".format(t18))
-    print("OVSDPDK message  {} \n".format(message18))
-    print("------------------------------")
-    print("OVSDPDK test case 18 status: {} ".format(t18))
-    print("OVSDPDK message  {} \n".format(message18))
-    print("------------------------------")
-    #print("OVSDPDK test case 22 status: {} ".format(t22))
-    #print("Mtu message  {} \n".format(message22))
-    print("------------------------------")
-    print("OVSDPDK test case 28 status: {} ".format(t28))
-    print("OVSDPDK message  {} \n".format(message28))
-    print("------------------------------")
-    #print("OVSDPDK test case 36 status: {} ".format(t36))
-    #print("OVSDPDK message  {} \n".format(message36))
-    print("------------------------------")
-    print("OVSDPDK test case 43 status: {} ".format(t43))
-    print("OVSDPDK message  {} \n".format(message43))
-    print("------------------------------")
-    print("OVSDPDK test case 46 status: {} ".format(t46))
-    print("OVSDPDK message  {} \n".format(message46))
-    print("------------------------------")
-    print("OVSDPDK test case 47 status: {} ".format(t47))
-    print("OVSDPDK message  {} \n".format(message47))
-    print("------------------------------")    
-    print("OVSDPDK test case 48 status: {} ".format(t48))
-    print("OVSDPDK message  {} \n".format(message48))
-    print("------------------------------")
-    print("OVSDPDK test case 49 status: {} ".format(t49))
-    print("OVSDPDK message  {} \n".format(message49))
-    print("------------------------------")
-    print("OVSDPDK test case 50 status: {} ".format(t50))
-    print("OVSDPDK message  {} \n".format(message50))
-    print("------------------------------")
+    logging.info("OVSDPDK test case 9 status: {} ".format(t9))
+    logging.info("OVSDPDK test case 11 status: {} ".format(t11))
+    logging.info("OVSDPDK test case 15 status: {} ".format(t15))
+    logging.info("OVSDPDK test case 16 status: {} ".format(t16))
+    logging.info("OVSDPDK test case 17 status: {} ".format(t17))
+    logging.info("OVSDPDK test case 18 status: {} ".format(t18))
+    #logging.info("OVSDPDK test case 22 status: {} ".format(t22))
+    logging.info("OVSDPDK test case 28 status: {} ".format(t28))
+    #logging.info("OVSDPDK test case 36 status: {} ".format(t36))
+    logging.info("OVSDPDK test case 43 status: {} ".format(t43))
+    logging.info("OVSDPDK test case 46 status: {} ".format(t46))
+    logging.info("OVSDPDK test case 47 status: {} ".format(t47))
+    logging.info("OVSDPDK test case 48 status: {} ".format(t48))
+    logging.info("OVSDPDK test case 49 status: {} ".format(t49))
+    logging.info("OVSDPDK test case 50 status: {} ".format(t50))
+    
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 9 status: {} ".format(t9))
+    logging.info("OVSDPDK message  {} \n".format(message9))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 11 status: {} ".format(t11))
+    logging.info("OVSDPDK message  {} \n".format(message11))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 15 status: {} ".format(t15))
+    logging.info("OVSDPDK message  {} \n".format(message15))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 16 status: {} ".format(t16))
+    logging.info("OVSDPDK message  {} \n".format(message16))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 17 status: {} ".format(t17))
+    logging.info("OVSDPDK message  {} \n".format(message17))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 18 status: {} ".format(t18))
+    logging.info("OVSDPDK message  {} \n".format(message18))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 18 status: {} ".format(t18))
+    logging.info("OVSDPDK message  {} \n".format(message18))
+    logging.info("------------------------------")
+    #logging.info("OVSDPDK test case 22 status: {} ".format(t22))
+    #logging.info("Mtu message  {} \n".format(message22))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 28 status: {} ".format(t28))
+    logging.info("OVSDPDK message  {} \n".format(message28))
+    logging.info("------------------------------")
+    #logging.info("OVSDPDK test case 36 status: {} ".format(t36))
+    #logging.info("OVSDPDK message  {} \n".format(message36))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 43 status: {} ".format(t43))
+    logging.info("OVSDPDK message  {} \n".format(message43))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 46 status: {} ".format(t46))
+    logging.info("OVSDPDK message  {} \n".format(message46))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 47 status: {} ".format(t47))
+    logging.info("OVSDPDK message  {} \n".format(message47))
+    logging.info("------------------------------")    
+    logging.info("OVSDPDK test case 48 status: {} ".format(t48))
+    logging.info("OVSDPDK message  {} \n".format(message48))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 49 status: {} ".format(t49))
+    logging.info("OVSDPDK message  {} \n".format(message49))
+    logging.info("------------------------------")
+    logging.info("OVSDPDK test case 50 status: {} ".format(t50))
+    logging.info("OVSDPDK message  {} \n".format(message50))
+    logging.info("------------------------------")
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------OVSDPDK Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Hugepage Volume Testcase Results")
+        logging.info("{}".format(volume_message))
      
 def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features, volume):
     
@@ -1022,7 +996,7 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
         return None
     
     passed=failed=0
-    '''
+    
     t3, message3= mtu9000_test_case_3(baremetal_nodes_ips)
     if t3 is True:
         passed=passed+1
@@ -1134,7 +1108,7 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
     else: 
         failed= failed+1
         t16= "Failed"
-    '''    
+        
     if(volume== True):
         volume_passed, volume_message= mtu9000_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, flavor_id,  network1_id, security_group_id, image_id)
 
@@ -1229,8 +1203,11 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
 def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
-    passed=failed=0
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
     
+    passed=failed=0
     t7, message7= dvr_test_case_7(baremetal_nodes_ips)
     if t7 == True:
         t7= "Passed"
@@ -1238,8 +1215,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t7="Failed"
-    print(t7)
-    print(message7)
 
     t8, message8= dvr_test_case_8(baremetal_nodes_ips)
     if t8 == True:
@@ -1248,8 +1223,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t8="Failed"
-    print(t8)
-    print(message8)
     
     t10, message10= dvr_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, router_id, security_group_id, image_id, flavor_id)
     if t10 == True:
@@ -1258,8 +1231,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t10="Failed"
-    print(t10)
-    print(message10)
     
     t11, message11= dvr_test_case_11(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id, flavor_id)
     if t11 == True:
@@ -1268,8 +1239,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t11="Failed"
-    print(t11)
-    print(message11)
     
     t12, message12= dvr_test_case_12(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id, flavor_id)
     if t12 == True:
@@ -1278,8 +1247,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t12="Failed"
-    print(t12)
-    print(message12)
     
      
     t13, message13= dvr_test_case_13(baremetal_nodes_ips)
@@ -1289,8 +1256,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t13="Failed"
-    print(t13)
-    print(message13)
     
     t14, message14, t15, message15, t23, message23= dvr_test_case_14_15_23(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id, flavor_id)
     if t14 == True:
@@ -1299,24 +1264,21 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t14="Failed"
-    print(t14)
-    print(message14)
+    
     if t15 == True:
         t15= "Passed"
         passed=passed+1
     else:
         failed=failed+1
         t15="Failed"
-    print(t15)
-    print(message15)
+   
     if t23 == True:
         t23= "Passed"
         passed=passed+1
     else:
         failed=failed+1
         t23="Failed"
-    print(t23)
-    print(message23)
+   
     
     t16, message16= dvr_test_case_16(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id, flavor_id)
     if t16 == True:
@@ -1325,9 +1287,7 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t16="Failed"
-    print(t16)
-    print(message16)
-    
+   
     t19, message19= dvr_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, network2_id, subnet2_id, router_id, security_group_id, image_id, flavor_id)
     if t19 == True:
         t19= "Passed"
@@ -1335,8 +1295,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t19="Failed"
-    print(t19)
-    print(message19)
     
     t17, message17= dvr_test_case_17(neutron_ep, token)
     if t17 == True:
@@ -1345,8 +1303,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t17="Failed"
-    print(t17)
-    print(message17)
     
     t31, message31= dvr_test_case_31(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
     if t31 == True:
@@ -1355,8 +1311,6 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t31="Failed"
-    print(t31)
-    print(message31)
     
     t32, message32= dvr_test_case_32(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
     if t32 == True:
@@ -1365,84 +1319,97 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
     else:
         failed=failed+1
         t32="Failed"
-    print(t32)
-    print(message32)
-    
-    
-    print("------------------------------")
-    print("---------DVR Test Cases-------")
-    print("------------------------------")
-    print("Total Testcases {}".format(failed+passed))
-    print("Testcases Passed {}".format(passed))
-    print("Testcases Failed {}".format(failed))
-    
-    print("DVR test case 7 status: {} ".format(t7))
-    print("DVR test case 8 status: {} ".format(t8))
-    print("DVR test case 10 status: {} ".format(t10))
-    print("DVR test case 11 status: {} ".format(t11))
-    print("DVR test case 12 status: {} ".format(t12))
-    print("DVR test case 13 status: {} ".format(t13))
-    print("DVR test case 14 status: {} ".format(t14))
-    print("DVR test case 15 status: {} ".format(t15))
-    print("DVR test case 16 status: {} ".format(t16))
-    print("DVR test case 17 status: {} ".format(t17))
-    print("DVR test case 19 status: {} ".format(t19))
-    print("DVR test case 23 status: {} ".format(t23))
-    print("DVR test case 31 status: {} ".format(t31))
-    print("DVR test case 32 status: {} ".format(t32))
    
+    if(volume== True):
+        volume_passed, volume_message= dvr_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, flavor_id,  network1_id, security_group_id, image_id)
     
-    print("------------------------------")
-    print("----------Description--------")
-    print("------------------------------")
-    print("DVR test case 7 status: {} ".format(t7))
-    print("DVR message  {} \n".format(message7))
-    print("------------------------------")
-    print("DVR test case 8 status: {} ".format(t8))
-    print("DVR message  {} \n".format(message8))
-    print("------------------------------")
-    print("DVR test case 10 status: {} ".format(t10))
-    print("DVR message  {} \n".format(message10))
-    print("------------------------------")
-    print("DVR test case 11 status: {} ".format(t11))
-    print("DVR message  {} \n".format(message11))
-    print("------------------------------")
-    print("DVR test case 12 status: {} ".format(t12))
-    print("DVR message  {} \n".format(message12))
-    print("------------------------------")
-    print("DVR test case 13 status: {} ".format(t12))
-    print("DVR message  {} \n".format(message13))
-    print("------------------------------")
-    print("DVR test case 14 status: {} ".format(t14))
-    print("DVR message  {} \n".format(message14))
-    print("------------------------------")
-    print("DVR test case 15 status: {} ".format(t15))
-    print("DVR message  {} \n".format(message15))
-    print("------------------------------")
-    print("DVR test case 16 status: {} ".format(t16))
-    print("DVR message  {} \n".format(message16))
-    print("------------------------------")
-    print("DVR test case 17 status: {} ".format(t17))
-    print("DVR message  {} \n".format(message17))
-    print("------------------------------")
-    print("DVR test case 19 status: {} ".format(t19))
-    print("DVR message  {} \n".format(message19))
-    print("------------------------------")
-    print("DVR test case 23 status: {} ".format(t23))
-    print("DVR message  {} \n".format(message23))
-    print("------------------------------")
-    print("DVR test case 31 status: {} ".format(t31))
-    print("DVR message  {} \n".format(message31))
-    print("------------------------------")    
-    print("DVR test case 32 status: {} ".format(t32))
-    print("DVR message  {} \n".format(message32))
-    print("------------------------------")
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
+    logging.info("------------------------------")
+    logging.info("---------DVR Test Cases-------")
+    logging.info("------------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
     
-    #dvr_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips)
+    logging.info("DVR test case 7 status: {} ".format(t7))
+    logging.info("DVR test case 8 status: {} ".format(t8))
+    logging.info("DVR test case 10 status: {} ".format(t10))
+    logging.info("DVR test case 11 status: {} ".format(t11))
+    logging.info("DVR test case 12 status: {} ".format(t12))
+    logging.info("DVR test case 13 status: {} ".format(t13))
+    logging.info("DVR test case 14 status: {} ".format(t14))
+    logging.info("DVR test case 15 status: {} ".format(t15))
+    logging.info("DVR test case 16 status: {} ".format(t16))
+    logging.info("DVR test case 17 status: {} ".format(t17))
+    logging.info("DVR test case 19 status: {} ".format(t19))
+    logging.info("DVR test case 23 status: {} ".format(t23))
+    logging.info("DVR test case 31 status: {} ".format(t31))
+    logging.info("DVR test case 32 status: {} ".format(t32))
+   
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
+    logging.info("DVR test case 7 status: {} ".format(t7))
+    logging.info("DVR message  {} \n".format(message7))
+    logging.info("------------------------------")
+    logging.info("DVR test case 8 status: {} ".format(t8))
+    logging.info("DVR message  {} \n".format(message8))
+    logging.info("------------------------------")
+    logging.info("DVR test case 10 status: {} ".format(t10))
+    logging.info("DVR message  {} \n".format(message10))
+    logging.info("------------------------------")
+    logging.info("DVR test case 11 status: {} ".format(t11))
+    logging.info("DVR message  {} \n".format(message11))
+    logging.info("------------------------------")
+    logging.info("DVR test case 12 status: {} ".format(t12))
+    logging.info("DVR message  {} \n".format(message12))
+    logging.info("------------------------------")
+    logging.info("DVR test case 13 status: {} ".format(t12))
+    logging.info("DVR message  {} \n".format(message13))
+    logging.info("------------------------------")
+    logging.info("DVR test case 14 status: {} ".format(t14))
+    logging.info("DVR message  {} \n".format(message14))
+    logging.info("------------------------------")
+    logging.info("DVR test case 15 status: {} ".format(t15))
+    logging.info("DVR message  {} \n".format(message15))
+    logging.info("------------------------------")
+    logging.info("DVR test case 16 status: {} ".format(t16))
+    logging.info("DVR message  {} \n".format(message16))
+    logging.info("------------------------------")
+    logging.info("DVR test case 17 status: {} ".format(t17))
+    logging.info("DVR message  {} \n".format(message17))
+    logging.info("------------------------------")
+    logging.info("DVR test case 19 status: {} ".format(t19))
+    logging.info("DVR message  {} \n".format(message19))
+    logging.info("------------------------------")
+    logging.info("DVR test case 23 status: {} ".format(t23))
+    logging.info("DVR message  {} \n".format(message23))
+    logging.info("------------------------------")
+    logging.info("DVR test case 31 status: {} ".format(t31))
+    logging.info("DVR message  {} \n".format(message31))
+    logging.info("------------------------------")    
+    logging.info("DVR test case 32 status: {} ".format(t32))
+    logging.info("DVR message  {} \n".format(message32))
+    logging.info("------------------------------")
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------DVR Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Hugepage Volume Testcase Results")
+        logging.info("{}".format(volume_message))
+    
 
 def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
-
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
+    
     passed=failed=0
     '''
     t5,message5, t6,message6= octavia_test_case_5_6(nova_ep, neutron_ep, image_ep, loadbal_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, router_id, security_group_id, image_id)
@@ -1626,6 +1593,10 @@ def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, key
         t34="Failed"
     print(t34)
     print(message34)
+       
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
     '''
 
 def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features, volume):
@@ -1647,54 +1618,11 @@ def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep
         pass
     time.sleep(20)
     
-    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
-    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
-    keypair_private_key=""
-    logging.info("searching ssh key")
-    keyfile_name= os.path.expanduser(settings["key_file"])
-    if(keypair_key != None):
-        logging.info("deleting old ssh key")
-        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
-
-    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
-    logging.info("ssh key created")
-    try:
-        logging.info("deleting old private file")
-        os.system("sudo rm "+keyfile_name)
-    except OSError:
-        pass
-    logging.info("creating key file")
-    keyfile = open(keyfile_name, "w")
-    keyfile.write(keypair_private_key)
-    keyfile.close()
-    logging.info("setting permission to private key file")
-    command= "chmod 400 "+keyfile_name
-    os.system(command )
-
-
-    #Search and create network
-    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
-    except:
-        pass
-    #search and create image
-    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-
+    network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
+    
     passed=failed=0
 
     sriov_vflag_test_case_3(baremetal_nodes_ips)
@@ -1746,43 +1674,12 @@ def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep
     else:
         failed=failed+1
         t8="Failed"    
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+  
     '''
-def storage_test_cases(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips, features, volume):
-    #creating zones
-        
-    keypair_public_key= search_and_create_kaypair(nova_ep, token, settings["key_name"])
-
-    #Search and create network
-    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
-    except:
-        pass
-    #search and create image
-    image_id= search_and_create_image( image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-
-    passed=failed=0
-   
-    storage_cases_1(keystone_ep, nova_ep, neutron_ep, image_ep, cinder_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    #print(t7)
-    #print(message7)
 def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
-     #creating zones
-    
+    #creating zones
     try:
         compute0 =  [key for key, val in baremetal_nodes_ips.items() if "hci-0" in key]
         compute0= compute0[0]
@@ -1802,58 +1699,14 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
         add_host_to_zone(nova_ep, token, nova1_id, compute2)
         time.sleep(20)
     except Exception as e:
-        print(e)
+        logging.exception(e)
     
     
-    keypair_public_key= "" #search_and_create_kaypair(nova_ep, token, settings["key_name"])
-    keypair_key= search_keypair(nova_ep, token, settings["key_name"])
-    keypair_private_key=""
-    logging.info("searching ssh key")
-    keyfile_name= os.path.expanduser(settings["key_file"])
-    if(keypair_key != None):
-        logging.info("deleting old ssh key")
-        delete_resource("{}/v2.1/os-keypairs/{}".format(nova_ep, settings["key_name"]), token)
-
-    keypair_private_key= create_keypair(nova_ep, token, settings["key_name"])
-    logging.info("ssh key created")
-    try:
-        logging.info("deleting old private file")
-        os.system("sudo rm "+keyfile_name)
-    except OSError:
-        pass
-    logging.info("creating key file")
-    keyfile = open(keyfile_name, "w")
-    keyfile.write(keypair_private_key)
-    keyfile.close()
-    logging.info("setting permission to private key file")
-    command= "chmod 400 "+keyfile_name
-    os.system(command )
-
-
-    #Search and create network
-    network1_id = search_and_create_network(neutron_ep, token, settings["network1_name"], 1500, settings["network_provider_type"], False)  
-    network2_id = search_and_create_network(neutron_ep, token, settings["network2_name"], 1500, settings["network_provider_type"], False)  
-    #Search and create subnet
-    subnet1_id= search_and_create_subnet(neutron_ep, token, settings["subnet1_name"], network1_id, settings["subnet1_cidr"]) 
-    subnet2_id= search_and_create_subnet(neutron_ep, token, settings["subnet2_name"], network2_id, settings["subnet2_cidr"]) 
-    router_id= search_router(neutron_ep, token, settings["router_name"])
-    flavor_id= search_and_create_flavor(nova_ep, token, settings["flavor1"], 4096, 2, 150)
-    if router_id is None:
-        public_network_id= public_network_id= search_network(neutron_ep, token, "public")
-        public_subnet_id= search_subnet(neutron_ep, token, settings["external_subnet"])
-        router_id= create_router(neutron_ep, token, settings["router_name"], public_network_id,public_subnet_id )
-        add_interface_to_router(neutron_ep, token, router_id, subnet2_id)
-        add_interface_to_router(neutron_ep, token, router_id, subnet1_id)
-    #Search and create security group
-    security_group_id= search_and_create_security_group(neutron_ep, token, settings["security_group_name"])
-    try:
-        add_icmp_rule_to_security_group(neutron_ep, token, security_group_id)
-        add_ssh_rule_to_security_group(neutron_ep, token, security_group_id)
-    except:
-        pass
-    #search and create image
-    image_id= search_and_create_image(image_ep, token, settings["image_name"], "bare", "qcow2", "public", os.path.expanduser(settings["image_file"]))
-
+    network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
+    
     passed=failed=0
     t3,message3= hci_test_case_3(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)    
     if t3 == True:
@@ -1921,8 +1774,9 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
         delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova0_id), token)
         delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova1_id), token)
     except Exception as e:
-        print(e)
+        logging.exception(e)
         pass
+
     t10,message10= hci_test_case_10(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
     if t10 == True:
         t10= "Passed"
@@ -1931,50 +1785,72 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
         failed=failed+1
         t10="Failed"
     
-    print("---------------------------")
-    print("-------HCI Test Cases-------")
-    print("---------------------------")
-    print("Total Testcases {}".format(failed+passed))
-    print("Testcases Passed {}".format(passed))
-    print("Testcases Failed {}".format(failed))
-    print("HCI test case 3 status: {} ".format(t3))
-    print("HCI test case 4 status: {} ".format(t4))
-    print("HCI test case 5 status: {} ".format(t5))
-    print("HCI test case 6 status: {} ".format(t6))
-    print("HCI test case 7 status: {} ".format(t7))
-    print("HCI test case 8 status: {} ".format(t8))
-    print("HCI test case 9 status: {} ".format(t9))
-    print("HCI test case 10 status: {} ".format(t10))
+    if(volume== True):
+        volume_passed, volume_message= hci_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, flavor_id,  network1_id, security_group_id, image_id)
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
+    logging.info("---------------------------")
+    logging.info("-------HCI Test Cases-------")
+    logging.info("---------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
+    logging.info("HCI test case 3 status: {} ".format(t3))
+    logging.info("HCI test case 4 status: {} ".format(t4))
+    logging.info("HCI test case 5 status: {} ".format(t5))
+    logging.info("HCI test case 6 status: {} ".format(t6))
+    logging.info("HCI test case 7 status: {} ".format(t7))
+    logging.info("HCI test case 8 status: {} ".format(t8))
+    logging.info("HCI test case 9 status: {} ".format(t9))
+    logging.info("HCI test case 10 status: {} ".format(t10))
  
-    print("------------------------------")
-    print("----------Description--------")
-    print("------------------------------")
-    print("HCI test case 3 status: {} ".format(t3))
-    print("HCI message  {} \n".format(message3))
-    print("------------------------------")
-    print("HCI test case 4 status: {} ".format(t4))
-    print("HCI message  {} \n".format(message4))
-    print("------------------------------")
-    print("HCI test case 5 status: {} ".format(t5))
-    print("HCI message  {} \n".format(message5))
-    print("------------------------------")
-    print("HCI test case 6 status: {} ".format(t6))
-    print("HCI message  {} \n".format(message6))
-    print("------------------------------")
-    print("HCI test case 7 status: {} ".format(t7))
-    print("HCI message  {} \n".format(message7))
-    print("------------------------------")
-    print("HCI test case 8 status: {} ".format(t8))
-    print("HCI message  {} \n".format(message8))
-    print("------------------------------")
-    print("HCI test case 8 status: {} ".format(t9))
-    print("HCI message  {} \n".format(message9))
-    print("------------------------------")
-    print("HCI test case 10 status: {} ".format(t10))
-    print("HCI message  {} \n".format(message10))
-    print("------------------------------")
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
+    logging.info("HCI test case 3 status: {} ".format(t3))
+    logging.info("HCI message  {} \n".format(message3))
+    logging.info("------------------------------")
+    logging.info("HCI test case 4 status: {} ".format(t4))
+    logging.info("HCI message  {} \n".format(message4))
+    logging.info("------------------------------")
+    logging.info("HCI test case 5 status: {} ".format(t5))
+    logging.info("HCI message  {} \n".format(message5))
+    logging.info("------------------------------")
+    logging.info("HCI test case 6 status: {} ".format(t6))
+    logging.info("HCI message  {} \n".format(message6))
+    logging.info("------------------------------")
+    logging.info("HCI test case 7 status: {} ".format(t7))
+    logging.info("HCI message  {} \n".format(message7))
+    logging.info("------------------------------")
+    logging.info("HCI test case 8 status: {} ".format(t8))
+    logging.info("HCI message  {} \n".format(message8))
+    logging.info("------------------------------")
+    logging.info("HCI test case 8 status: {} ".format(t9))
+    logging.info("HCI message  {} \n".format(message9))
+    logging.info("------------------------------")
+    logging.info("HCI test case 10 status: {} ".format(t10))
+    logging.info("HCI message  {} \n".format(message10))
+    logging.info("------------------------------")
+
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------HCI Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Hugepage Volume Testcase Results")
+        logging.info("{}".format(volume_message))
+
+
 
 def barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips, features, volume):
+    network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
+    if(network1_id == "error" and network2_id =="error"):
+        logging.error("error occured during environment setup/ skipping testscases")
+        return None
+    
 
     #t1,message1= barbican_test_case_1(nova_ep, neutron_ep, image_ep, barbican_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
     #print(t1)
@@ -2091,7 +1967,7 @@ def main():
     if arguments.feature[0] == "sriov_vflag":
         sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "hci":
-        hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
+        hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep,keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
     if arguments.feature[0] == "barbican":
         barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips, arguments.feature, arguments.volume) 
    

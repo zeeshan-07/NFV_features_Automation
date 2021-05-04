@@ -1938,16 +1938,16 @@ def main():
     #update compute nodes names in baremetal nodes ip
     logging.info("updating compute nodes name in baremetal nodes ips")
     compute0= [i for i in hosts_list if (compute_node_search_pattern+"0") in i]
-    compoute0_key = [key for key, val in baremetal_nodes_ips.items() if  (compute_node_search_pattern+"0") in key]
-    baremetal_nodes_ips[compute0[0]] = baremetal_nodes_ips.pop(compoute0_key[0])
-    
-    compute1= [i for i in hosts_list if  (compute_node_search_pattern+"1") in i]
-    compoute1_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"1") in key]
-    baremetal_nodes_ips[compute1[0]] = baremetal_nodes_ips.pop(compoute1_key[0])
-    
-    compute2= [i for i in hosts_list if  (compute_node_search_pattern+"2") in i]
-    compoute2_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"2") in key]
-    baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compoute2_key[0])
+    compute0_key = [key for key, val in baremetal_nodes_ips.items() if  (compute_node_search_pattern+"0") in key]
+    baremetal_nodes_ips[compute0[0]] = baremetal_nodes_ips.pop(compute0_key[0])
+    if(settings"compute_nodes"== 1 or settings"compute_nodes"== 2)
+        compute1= [i for i in hosts_list if  (compute_node_search_pattern+"1") in i]
+        compute1_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"1") in key]
+        baremetal_nodes_ips[compute1[0]] = baremetal_nodes_ips.pop(compute1_key[0])
+    if(settings"compute_nodes"== 2)
+        compute2= [i for i in hosts_list if  (compute_node_search_pattern+"2") in i]
+        compute2_key = [key for key, val in baremetal_nodes_ips.items() if (compute_node_search_pattern+"2") in key]
+        baremetal_nodes_ips[compute2[0]] = baremetal_nodes_ips.pop(compute2_key[0])
     
     #Run Test Cases
     if arguments.feature[0] == "numa":

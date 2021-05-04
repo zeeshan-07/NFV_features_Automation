@@ -92,8 +92,8 @@ def numa_test_case_5_6_9(nova_ep, neutron_ep, image_ep, token, settings, baremet
         count=0
         for i in range (0,instance_possible):
             status= check_server_status(nova_ep, token, server_ids[i])
-            if(status != "active"):
-                flag== False
+            if(status.strip() == "error"):
+                flag= False
 
         status= check_server_status(nova_ep, token, server_ids[-1])
         if (status=="error" and flag==True):
@@ -104,7 +104,6 @@ def numa_test_case_5_6_9(nova_ep, neutron_ep, image_ep, token, settings, baremet
             logging.info("deleting extra server")
             delete_resource("{}/v2.1/servers/{}".format(nova_ep,server_ids[-1]), token)
             del server_ids[-1]
-
             #pause all instances  
             #Chck when all inastances are paused
             for server_id in server_ids:   

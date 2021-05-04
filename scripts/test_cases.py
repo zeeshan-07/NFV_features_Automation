@@ -1951,7 +1951,7 @@ def main():
     #Set empty names if less compute nodes to avoid testcase failure
     if(settings["compute_nodes"]== 1):
         baremetal_nodes_ips["compute-1"]= ""
-        baremetal_nodes_ips["compute-2"]
+        baremetal_nodes_ips["compute-2"]=""
     if(settings["compute_nodes"]== 2):
         baremetal_nodes_ips["compute-2"]=""
     

@@ -1956,7 +1956,7 @@ def main():
         baremetal_nodes_ips["compute-2"]=""
     
     print("#################")
-    print(baremetal_node_ips)
+    print(baremetal_nodes_ips)
     print("@@@@@@@@@@@@@@@@")
 
 

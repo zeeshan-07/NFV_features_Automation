@@ -10,15 +10,21 @@ Test Cases automatically deletes servers and flavors, but if in some cases they 
 
 # How to Run Test Cases:
 Below parameters are required to run the testcase.
-* setting file
+* setting file (optional)
 * list of features (feature to test should be placed in first potion, other two values can be numa and barbican)
 * stackrc file path (optional)
 * overcloud rc file path
 * volume (optional)
 
-For example command is used to run testcases for dvr: 
-
-python3 testcases.py -s settings.json -f dvr numa  -o ~/overcloudrc_file
+For example
+1) command  to run DVR testcases will be: 
+	python3 testcases.py -f dvr   -o ~/overcloudrc_file
+2) command  to run DVR  with testcases with numa and barbican enabled awill be:
+	python3 testcases.py -f dvr  numa barbican -o ~/overcloudrc_file
+3) command  to run DVR  along with volume testcases with barbican enabled will be:
+ 	python3 testcases.py -f dvr  barbican -o ~/overcloudrc_file -v
+4) command to run SRIOV with all optional argument will be:
+	python3 testcases.py -f dvr   -o ~/overcloudrc_file -u ~/stackrc -s ~/settings.json --v
 
 ## Possible feature options
 Following features are supported

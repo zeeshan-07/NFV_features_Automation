@@ -319,63 +319,66 @@ def numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbi
     delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
 
     
-    print("---------------------------")
-    print("------NUMA Test Cases------")
-    print("---------------------------")
-    print("Total Testcases {}".format(failed+passed))
-    print("Testcases Passed {}".format(passed))
-    print("Testcases Failed {}".format(failed))
+    logging.info("---------------------------")
+    logging.info("------NUMA Test Cases------")
+    logging.info("---------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
 
-
-    print("NUMA test case 3 status: {} ".format(t3))
-    print("NUMA test case 5 status: {} ".format(t5))
-    print("NUMA test case 6 status: {} ".format(t6))
-    print("NUMA test case 7 status: {} ".format(t7))
-    print("NUMA test case 8 status: {} ".format(t8))
-    print("NUMA test case 9 status: {} ".format(t9))
-    print("NUMA test case 10 status: {} ".format(t10))
-    print("NUMA test case 11 status: {} ".format(t11))
-    print("NUMA test case 12 status: {} ".format(t12))
+    logging.info("NUMA test case 3 status: {} ".format(t3))
+    logging.info("NUMA test case 5 status: {} ".format(t5))
+    logging.info("NUMA test case 6 status: {} ".format(t6))
+    logging.info("NUMA test case 7 status: {} ".format(t7))
+    logging.info("NUMA test case 8 status: {} ".format(t8))
+    logging.info("NUMA test case 9 status: {} ".format(t9))
+    logging.info("NUMA test case 10 status: {} ".format(t10))
+    logging.info("NUMA test case 11 status: {} ".format(t11))
+    logging.info("NUMA test case 12 status: {} ".format(t12))
+    logging.info("NUMA test case 13 status: {} ".format(t13))
  
-    print("------------------------------")
-    print("----------Description--------")
-    print("------------------------------")
-    print("NUMA test case 3 status: {} ".format(t3))
-    print("NUMA message  {} \n".format(message3))
-    print("------------------------------")
-    print("NUMA test case 5 status: {} ".format(t5))
-    print("NUMA message  {} \n".format(message5))
-    print("------------------------------")
-    print("NUMA test case 6 status: {} ".format(t6))
-    print("NUMA message  {} \n".format(message6))
-    print("------------------------------")
-    print("NUMA test case 7 status: {} ".format(t7))
-    print("NUMA message  {} \n".format(message7))
-    print("------------------------------")
-    print("NUMA test case 8 status: {} ".format(t8))
-    print("NUMA message  {} \n".format(message8))
-    print("------------------------------")
-    print("NUMA test case 9 status: {} ".format(t9))
-    print("NUMA message  {} \n".format(message9))
-    print("------------------------------")
-    print("NUMA test case 10 status: {} ".format(t10))
-    print("NUMA message  {} \n".format(message10))
-    print("------------------------------")
-    print("NUMA test case 11 status: {} ".format(t11))
-    print("NUMA message  {} \n".format(message11))
-    print("------------------------------")
-    print("NUMA test case 12 status: {} ".format(t12))
-    print("NUMA message  {} \n".format(message12))
-    print("------------------------------")
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
+    logging.info("NUMA test case 3 status: {} ".format(t3))
+    logging.info("NUMA message  {} \n".format(message3))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 5 status: {} ".format(t5))
+    logging.info("NUMA message  {} \n".format(message5))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 6 status: {} ".format(t6))
+    logging.info("NUMA message  {} \n".format(message6))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 7 status: {} ".format(t7))
+    logging.info("NUMA message  {} \n".format(message7))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 8 status: {} ".format(t8))
+    logging.info("NUMA message  {} \n".format(message8))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 9 status: {} ".format(t9))
+    logging.info("NUMA message  {} \n".format(message9))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 10 status: {} ".format(t10))
+    logging.info("NUMA message  {} \n".format(message10))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 11 status: {} ".format(t11))
+    logging.info("NUMA message  {} \n".format(message11))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 12 status: {} ".format(t12))
+    logging.info("NUMA message  {} \n".format(message12))
+    logging.info("------------------------------")
+    logging.info("NUMA test case 13 status: {} ".format(t13))
+    logging.info("NUMA message  {} \n".format(message13))
+    logging.info("------------------------------")
 
     if(volume== True):
         logging.info("--------------------------------")
         logging.info("------Numa Volume Test Cases------")
         logging.info("------  ------------------------")
         logging.info("Total Testcases 12")
-        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Passed {}".format(volume_passed))
         logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
-        logging.info("Hugepage Volume Testcase Results")
+        logging.info("NUMA Volume Testcase Results")
         logging.info("{}".format(volume_message))
     
 def hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
@@ -477,7 +480,7 @@ def hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, 
         failed=failed+1
         t13="Failed"
     if(volume== True):
-        volume_passed, volume_message= hugepages_volume_test_case(image_ep, nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, network1_id, security_group_id, image_id)
+        volume_passed, volume_message= hugepages_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, network1_id, security_group_id, image_id)
     #Changing qouta to default settings
     logging.info("setting default quota")
     try:
@@ -548,13 +551,14 @@ def hugepages_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, 
         logging.info("------Hugepages Volume Test Cases------")
         logging.info("------  ------------------------")
         logging.info("Total Testcases 12")
-        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Passed {}".format(volume_passed))
         logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
         logging.info("Hugepage Volume Testcase Results")
         logging.info("{}".format(volume_message))
     
 def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     #creating zones
+
     try:
         compute0 =  [key for key, val in baremetal_nodes_ips.items() if "compute-0" in key]
         compute0= compute0[0]
@@ -579,11 +583,16 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
     if(network1_id == "error" and network2_id =="error"):
         logging.error("error occured during environment setup/ skipping testscases")
         return None
-    
-
     passed=failed=0
     
-    
+    t3, message3= sriov_test_case_3(baremetal_nodes_ips)
+    if t3 == True:
+        t3= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t3="Failed"
+
     t7,message7, t8,message8= sriov_test_case_7_8(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
     if t7 == True:
         t7= "Passed"
@@ -596,8 +605,8 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
         passed=passed+1
     else:
         failed=failed+1
-        t8="Failed"    
-
+        t8="Failed"  
+    
     t10,message10= sriov_test_case_10(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
     if t10 == True:
         t10= "Passed"
@@ -667,7 +676,26 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
     else:
         failed=failed+1
         t18="Failed"
-    
+    t19,message19= sriov_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
+    if t19 == True:
+        t19= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t19="Failed"
+    t20,message20= sriov_test_case_20(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
+    if t20 == True:
+        t20= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t20="Failed"
+    if(volume== True):
+        volume_passed, volume_message= volume_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, network1_id, security_group_id, image_id)
+    #Changing qouta to default settings
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
     #Deleting zones
     try:
         remove_host_from_zone(nova_ep, token, nova0_id, compute0)
@@ -679,84 +707,88 @@ def sriov_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barb
         delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova0_id), token)
         delete_resource("{}/v2.1/os-aggregates/{}".format(nova_ep, nova1_id), token)
     except Exception as e:
-        print(e)
-        pass
+        logging.exception(e)
      
     logging.info("cleaning resources")
     delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
 
-    print("---------------------------")
-    print("------SRIOV Test Cases------")
-    print("---------------------------")
-    print("Total Testcases {}".format(failed+passed))
-    print("Testcases Passed {}".format(passed))
-    print("Testcases Failed {}".format(failed))
+    logging.info("---------------------------")
+    logging.info("------SRIOV Test Cases------")
+    logging.info("---------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
     
-    print("SRIOV test case 7 status: {} ".format(t7))
-    print("SRIOV test case 8 status: {} ".format(t8))
-    print("SRIOV test case 10 status: {} ".format(t10))
-    print("SRIOV test case 11 status: {} ".format(t11))
-    print("SRIOV test case 12 status: {} ".format(t12))
-    #print("SRIOV test case 13 status: {} ".format(t13))
-    #print("SRIOV test case 14 status: {} ".format(t14))
+    logging.info("SRIOV test case 3 status: {} ".format(t3))
+    logging.info("SRIOV test case 7 status: {} ".format(t7))
+    logging.info("SRIOV test case 8 status: {} ".format(t8))
+    logging.info("SRIOV test case 10 status: {} ".format(t10))
+    logging.info("SRIOV test case 11 status: {} ".format(t11))
+    logging.info("SRIOV test case 12 status: {} ".format(t12))
+    logging.info("SRIOV test case 13 status: {} ".format(t13))
+    logging.info("SRIOV test case 14 status: {} ".format(t14))
+    logging.info("SRIOV test case 15 status: {} ".format(t15))
+    logging.info("SRIOV test case 16 status: {} ".format(t16))
+    logging.info("SRIOV test case 17 status: {} ".format(t17))
+    logging.info("SRIOV test case 18 status: {} ".format(t18))
+    logging.info("SRIOV test case 19 status: {} ".format(t19))
+    logging.info("SRIOV test case 20 status: {} ".format(t20))
     
-    print("SRIOV test case 15 status: {} ".format(t15))
-    print("SRIOV test case 16 status: {} ".format(t16))
-    print("SRIOV test case 17 status: {} ".format(t17))
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
     
-    print("SRIOV test case 18 status: {} ".format(t18))
-    
-    print("------------------------------")
-    print("----------Description--------")
-    print("------------------------------")
-    
-    print("SRIOV test case 7 status: {} ".format(t7))
-    print("SRIOV message  {} \n".format(message7))
-    print("------------------------------")
-    print("SRIOV test case 8 status: {} ".format(t8))
-    print("SRIOV message  {} \n".format(message8))
-    print("------------------------------")
-    print("SRIOV test case 10 status: {} ".format(t10))
-    print("SRIOV message  {} \n".format(message10))
-    print("------------------------------")
-    print("SRIOV test case 11 status: {} ".format(t11))
-    print("SRIOV message  {} \n".format(message11))
-    print("------------------------------")
-    print("SRIOV test case 12 status: {} ".format(t12))
-    print("SRIOV message  {} \n".format(message12))
-    print("------------------------------")
-    
-    #print("SRIOV test case 13 status: {} ".format(t13))
-    #print("SRIOV message  {} \n".format(message13))
-    print("------------------------------")
-    #print("SRIOV test case 14 status: {} ".format(t14))
-    #print("SRIOV message  {} \n".format(message14))
-    
-    print("------------------------------")
-    print("SRIOV test case 15 status: {} ".format(t15))
-    print("SRIOV message  {} \n".format(message15))
-    print("------------------------------")
-    print("SRIOV test case 16 status: {} ".format(t16))
-    print("SRIOV message  {} \n".format(message16))
-    print("------------------------------")
-    print("SRIOV test case 17 status: {} ".format(t17))
-    print("SRIOV message  {} \n".format(message17))
-    print("------------------------------")
-    
-    print("SRIOV test case 18 status: {} ".format(t18))
-    print("SRIOV message  {} \n".format(message18))
-    print("------------------------------")
-    
-    t3, message3= sriov_test_case_3(baremetal_nodes_ips)
-    print(t3)
-    print(message3)
-
-    #t19,message19= sriov_test_case_19(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
-    #print(t19)
-    #print(message19)
-    #t20,message20= sriov_test_case_20(nova_ep, neutron_ep, image_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id, flavor_id)
-    #print(t20)
-    #print(message20)
+    logging.info("SRIOV test case 3 status: {} ".format(t3))
+    logging.info("SRIOV message  {} \n".format(message3))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 7 status: {} ".format(t7))
+    logging.info("SRIOV message  {} \n".format(message7))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 8 status: {} ".format(t8))
+    logging.info("SRIOV message  {} \n".format(message8))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 10 status: {} ".format(t10))
+    logging.info("SRIOV message  {} \n".format(message10))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 11 status: {} ".format(t11))
+    logging.info("SRIOV message  {} \n".format(message11))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 12 status: {} ".format(t12))
+    logging.info("SRIOV message  {} \n".format(message12))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 13 status: {} ".format(t13))
+    logging.info("SRIOV message  {} \n".format(message13))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 14 status: {} ".format(t14))
+    logging.info("SRIOV message  {} \n".format(message14))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 15 status: {} ".format(t15))
+    logging.info("SRIOV message  {} \n".format(message15))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 16 status: {} ".format(t16))
+    logging.info("SRIOV message  {} \n".format(message16))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 17 status: {} ".format(t17))
+    logging.info("SRIOV message  {} \n".format(message17))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 18 status: {} ".format(t18))
+    logging.info("SRIOV message  {} \n".format(message18))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 19 status: {} ".format(t19))
+    logging.info("SRIOV message  {} \n".format(message19))
+    logging.info("------------------------------")
+    logging.info("SRIOV test case 20 status: {} ".format(t20))
+    logging.info("SRIOV message  {} \n".format(message20))
+    logging.info("------------------------------")
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------SRIOV Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {}".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Hugepage Volume Testcase Results")
+        logging.info("{}".format(volume_message))
 
 def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
@@ -983,9 +1015,9 @@ def ovsdpdk_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
         logging.info("------OVSDPDK Volume Test Cases------")
         logging.info("------  ------------------------")
         logging.info("Total Testcases 12")
-        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Passed {}".format(volume_passed))
         logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
-        logging.info("Hugepage Volume Testcase Results")
+        logging.info("OVSDPDK Volume Testcase Results")
         logging.info("{}".format(volume_message))
      
 def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features, volume):
@@ -1195,9 +1227,9 @@ def mtu9000_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, ba
         logging.info("------MTU9000 Volume Test Cases------")
         logging.info("------  ------------------------")
         logging.info("Total Testcases 12")
-        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Passed {}".format(volume_passed))
         logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
-        logging.info("Hugepage Volume Testcase Results")
+        logging.info("MTU9000 Volume Testcase Results")
         logging.info("{}".format(volume_message))
     
 def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, features, volume):
@@ -1398,9 +1430,9 @@ def dvr_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
         logging.info("------DVR Volume Test Cases------")
         logging.info("------  ------------------------")
         logging.info("Total Testcases 12")
-        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Passed {}".format(volume_passed))
         logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
-        logging.info("Hugepage Volume Testcase Results")
+        logging.info("DVR Volume Testcase Results")
         logging.info("{}".format(volume_message))
     
 
@@ -1598,7 +1630,6 @@ def octavia_test_cases(nova_ep, neutron_ep, image_ep, loadbal_ep, cinder_ep, key
     delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
 
     '''
-
 def sriov_vflag_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep,  token, settings, baremetal_nodes_ips, features, volume):
     #creating zones
     
@@ -1838,37 +1869,140 @@ def hci_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbic
         logging.info("------HCI Volume Test Cases------")
         logging.info("------  ------------------------")
         logging.info("Total Testcases 12")
-        logging.info("Testcases Passed {} \n".format(volume_passed))
+        logging.info("Testcases Passed {}".format(volume_passed))
         logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
-        logging.info("Hugepage Volume Testcase Results")
+        logging.info("HCI Volume Testcase Results")
         logging.info("{}".format(volume_message))
-
-
 
 def barbican_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, barbican_ep, keystone_ep, token, settings, baremetal_nodes_ips, features, volume):
     network1_id, network2_id, subnet1_id, subnet2_id, router_id, security_group_id, image_id, flavor_id, keypair_public_key= setup_testcases(features, settings, neutron_ep, nova_ep, image_ep, barbican_ep, keystone_ep, token)
     if(network1_id == "error" and network2_id =="error"):
         logging.error("error occured during environment setup/ skipping testscases")
         return None
-    
-
-    #t1,message1= barbican_test_case_1(nova_ep, neutron_ep, image_ep, barbican_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, image_id)
-    #print(t1)
-    #print(message1)
-    
+    passed=failed=0
+   
     t1,message1, t2,message2, t3,message3, t4,message4 = barbican_test_case_1_2_3_4(barbican_ep, token) 
-    print(t1)
-    print(message1)
-    print(t2)
-    print(message2)
-    print(t3)
-    print(message3)
-    print(t4)
-    print(message4)
+    if t1 == True:
+        t1= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t1="Failed"
+    if t2 == True:
+        t2= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t2="Failed"
+    if t3 == True:
+        t3= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t3="Failed"
+    if t4 == True:
+        t4= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t4="Failed"
     
     t5,message5= barbican_test_case_5(barbican_ep, token)
-    print(t5)
-    print(message5)
+    if t5 == True:
+        t5= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t5="Failed"
+    
+    t6,message6,t7,message7, t8, message8, t9, message9 = barbican_test_case_6_7_8_9(keystone_ep, cinder_ep, nova_ep, neutron_ep, image_ep, barbican_ep, token, settings, baremetal_nodes_ips, keypair_public_key, network1_id, subnet1_id, security_group_id, flavor_id)
+    if t6 == True:
+        t6= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t6="Failed"
+    if t7 == True:
+        t7= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t7="Failed"
+    if t8 == True:
+        t8= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t8="Failed"
+    if t9 == True:
+        t9= "Passed"
+        passed=passed+1
+    else:
+        failed=failed+1
+        t9="Failed"
+    if(volume== True):
+        volume_passed, volume_message= barbican_volume_test_case(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, token, settings, baremetal_nodes_ips, flavor_id,  network1_id, security_group_id, image_id)
+    
+    logging.info("cleaning resources")
+    delete_setup( token, nova_ep, image_ep, neutron_ep, network1_id, network2_id, subnet1_id, subnet2_id, router_id, image_id, flavor_id, settings)
+
+    logging.info("------------------------------")
+    logging.info("---------Barbican Test Cases-------")
+    logging.info("------------------------------")
+    logging.info("Total Testcases {}".format(failed+passed))
+    logging.info("Testcases Passed {}".format(passed))
+    logging.info("Testcases Failed {}".format(failed))
+    
+    logging.info("Barbican test case 1 status: {} ".format(t1))
+    logging.info("Barbican test case 2 status: {} ".format(t2))
+    logging.info("Barbican test case 3 status: {} ".format(t3))
+    logging.info("Barbican test case 4 status: {} ".format(t4))
+    logging.info("Barbican test case 5 status: {} ".format(t5))
+    logging.info("Barbican test case 6 status: {} ".format(t6))
+    logging.info("Barbican test case 7 status: {} ".format(t7))
+    logging.info("Barbican test case 8 status: {} ".format(t8))
+    logging.info("Barbican test case 9 status: {} ".format(t9))
+   
+    logging.info("------------------------------")
+    logging.info("----------Description--------")
+    logging.info("------------------------------")
+    logging.info("Barbican test case 1 status: {} ".format(t1))
+    logging.info("Barbican message  {} \n".format(message1))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 2 status: {} ".format(t2))
+    logging.info("Barbican message  {} \n".format(message2))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 3 status: {} ".format(t3))
+    logging.info("Barbican message  {} \n".format(message3))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 4 status: {} ".format(t4))
+    logging.info("Barbican message  {} \n".format(message4))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 5 status: {} ".format(t5))
+    logging.info("Barbican message  {} \n".format(message5))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 6 status: {} ".format(t6))
+    logging.info("Barbican message  {} \n".format(message6))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 7 status: {} ".format(t7))
+    logging.info("Barbican message  {} \n".format(message7))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 8 status: {} ".format(t8))
+    logging.info("Barbican message  {} \n".format(message8))
+    logging.info("------------------------------")
+    logging.info("Barbican test case 9 status: {} ".format(t9))
+    logging.info("Barbican message  {} \n".format(message9))
+    logging.info("------------------------------")
+    if(volume== True):
+        logging.info("--------------------------------")
+        logging.info("------Barbican Volume Test Cases------")
+        logging.info("------  ------------------------")
+        logging.info("Total Testcases 12")
+        logging.info("Testcases Passed {}".format(volume_passed))
+        logging.info("Testcases Skipped/Failed {}".format((12-volume_passed)))
+        logging.info("Barbican Volume Testcase Results")
+        logging.info("{}".format(volume_message))
+
 
 
 def main():
@@ -1955,13 +2089,6 @@ def main():
     if(settings["compute_nodes"]== 2):
         baremetal_nodes_ips["compute-2"]=""
     
-    print("#################")
-    print(baremetal_nodes_ips)
-    print("@@@@@@@@@@@@@@@@")
-
-
-
-
     #Run Test Cases
     if arguments.feature[0] == "numa":
         numa_test_cases(nova_ep, neutron_ep, image_ep, cinder_ep, keystone_ep, barbican_ep, token, settings, baremetal_nodes_ips, arguments.feature,  arguments.volume) 

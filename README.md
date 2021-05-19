@@ -17,14 +17,14 @@ Below parameters are required to run the testcase.
 * volume (optional)
 
 For example
-1) command  to run DVR testcases will be: 
+1) command  to run DVR testcases will be: <br />
 	python3 testcases.py -f dvr   -o ~/overcloudrc_file
-2) command  to run DVR  with testcases with numa and barbican enabled awill be:
+2) command  to run DVR  with testcases with numa and barbican enabled awill be:<br />
 	python3 testcases.py -f dvr  numa barbican -o ~/overcloudrc_file
-3) command  to run DVR  along with volume testcases with barbican enabled will be:
+3) command  to run DVR  along with volume testcases with barbican enabled will be:<br />
  	python3 testcases.py -f dvr  barbican -o ~/overcloudrc_file -v
-4) command to run SRIOV with all optional argument will be:
-	python3 testcases.py -f dvr   -o ~/overcloudrc_file -u ~/stackrc -s ~/settings.json --v
+4) command to run SRIOV with all optional argument will be: <br />
+	python3 testcases.py -f dvr   -o ~/overcloudrc_file -u ~/stackrc -s ~/settings.json --v <br />
 
 ## Possible feature options
 Following features are supported
